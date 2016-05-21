@@ -30,13 +30,31 @@ package body AccountManagementSystem is
    invalidLocation : GPSLocation := (0.0, 0.0);
    
    -- The number of emergency information that can be stored per person.
-   EventStorageNum : constant Positive := 10;     
+   --EventStorageNum : constant Positive := 10;     
     
    -- The list of storing location in case of emergency.
-   type EventLocationList is array (Positive range <>) of GPSLocation; 
+   --type EventLocationList is array (Positive range <>) of GPSLocation; 
    
    -- The list of storing vitals in case of emergency.
-   type EventVitalList is array (Positive range <>) of BPM;
+   --type EventVitalList is array (Positive range <>) of BPM;
+   
+   --
+   
+   MAX_HISTORY : Integer := 100;
+    type EmergencyRecord is
+      record
+         user :UserID;
+         GeoLocation :GPSLocation;
+         HeartBeat :BPM;
+      end record;
+
+   type EmergencyList is array (0 .. MAX_HISTORY) of EmergencyRecord;
+
+   
+   
+   -- to point to the nex avaliable Index for record
+   nextRecordIndex : Integer := 0;
+   emergHistory :EmergencyList;
    
    --The data structure of a wearer.
    type Wearers is
@@ -65,11 +83,11 @@ package body AccountManagementSystem is
          StepNum : Footsteps := 0;
          
          -- The number of emergency happened to the wearer.
-         NumOfEvent : Integer := 0;
+      --   NumOfEvent : Integer := 0;
          
          -- The location and vital stored for future use.
-         EventLocations : EventLocationList(1..EventStorageNum);
-         EventVitals : EventVitalList(1..EventStorageNum);
+      --   EventLocations : EventLocationList(1..EventStorageNum);
+      --   EventVitals : EventVitalList(1..EventStorageNum);
       end record;
    
    -- The users array stored the created users.    
@@ -142,6 +160,9 @@ package body AccountManagementSystem is
          Put_Line("Sorry! This wearer does not exist.");
       else 
          Users(Wearer).Insurance := -1;
+         Users(Wearer).InsurancePermissionHB := False;
+         Users(Wearer).InsurancePermissionGL := False;
+         Users(Wearer).InsurancePermissionSN := False;
       end if;
    end RemoveInsurer;
    
@@ -196,6 +217,9 @@ package body AccountManagementSystem is
          Put_Line("Sorry! This wearer does not exist.");
       else 
          Users(Wearer).Friend := -1; 
+         Users(Wearer).FriendPermissionHB := False;
+         Users(Wearer).FriendPermissionGL := False;
+         Users(Wearer).FriendPermissionSN := False;
       end if;
    end RemoveFriend;
    
@@ -434,10 +458,11 @@ package body AccountManagementSystem is
    begin
       if Wearer > 0 and Wearer < AutoIncrementalBase and 
          Users(Wearer).EmergencyPermissionHB = True then 
-         Users(Wearer).NumOfEvent := Users(Wearer).NumOfEvent + 1;
          ContactEmergency(Wearer,Vitals,Location);
-         Users(Wearer).EventLocations(Users(Wearer).NumOfEvent):= Location;
-         Users(Wearer).EventVitals(Users(Wearer).NumOfEvent):= Vitals;
+         emergHistory(nextRecordIndex).user := Wearer;
+         emergHistory(nextRecordIndex).GeoLocation := Location;
+         emergHistory(nextRecordIndex).HeartBeat := Vitals;
+         nextRecordIndex := nextRecordIndex +1;
       end if;
    end ContactEmergency;
 end AccountManagementSystem;
