@@ -97,18 +97,43 @@ is
    
    procedure Init 
      with Post => (AutoIncrementalBase = 1 and nextRecordIndex = 0);
+   
    function CreateUser return UserID 
      with 
       Global => (AutoIncrementalBase, Users),
        Pre => Integer(AutoIncrementalBase) <= MAX_USERID,
        Post => (AutoIncrementalBase'Old = CreateUser'Result and 
-                  AutoIncrementalBase = CreateUser'Result +1) --and 
-     --(for all K in 1 .. Integer(AutoIncrementalBase))
-   ;
-   procedure SetInsurer(Wearer : in UserID; Insurer : in UserID);
-      
-   function ReadInsurer(Wearer : in UserID) return UserID;
-   procedure RemoveInsurer(Wearer : in UserID);
+                  AutoIncrementalBase = CreateUser'Result);
+   procedure SetInsurer(Wearer : in UserID; Insurer : in UserID)
+      with 
+      Global => ( In_Out => Users, Input => AutoIncrementalBase),
+       Pre => (Wearer < AutoIncrementalBase and Wearer < AutoIncrementalBase),
+     Post => (if Wearer /= Insurer then
+                Users = Users'Old'Update(Wearer => Users'Old(Wearer)'Update
+               (InsurancePermissionHB => False,
+               InsurancePermissionGL => False, 
+               InsurancePermissionSN => True,
+                Insurance => Insurer))
+                else
+                  Users = Users'Old
+             );
+
+   function ReadInsurer(Wearer : in UserID) return UserID
+     with 
+       Global => (Input => (Users, AutoIncrementalBase)),
+       Pre => Wearer < AutoIncrementalBase,
+       Post => ReadInsurer'Result = Users(Wearer).Insurance;
+   
+   procedure RemoveInsurer(Wearer : in UserID) 
+     with 
+       Global => ( In_Out => Users, Input => AutoIncrementalBase),
+       Pre => (Wearer < AutoIncrementalBase and Wearer < AutoIncrementalBase),
+       Post => Users = Users'Old'Update(Wearer => Users'Old(Wearer)'Update
+               (InsurancePermissionHB => False,
+               InsurancePermissionGL => False, 
+               InsurancePermissionSN => True,
+                Insurance => -1));
+   
    procedure SetFriend(Wearer : in UserID; NewFriend : in UserID);
    function ReadFriend(Wearer : in UserID) return UserID;
    procedure RemoveFriend(Wearer : in UserID);
