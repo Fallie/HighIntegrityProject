@@ -7,13 +7,14 @@ with Measures; use Measures;
 -- procedure called ContactEmergency.
 
 package AccountManagementSystem with
-  SPARK_Mode => On,
+  SPARK_Mode,
   Initializes => (NoI, AutoIncrementalBase, minUser,
                   invalidVital,invalidFootStep,invalidLocation,nextRecordIndex,
-                 Users)
+                  Users,MAX_HISTORY),
+  Initial_Condition => (AutoIncrementalBase = 1 and nextRecordIndex = 0)
 is
      
-   -- This stands for the number of insurers.                                  
+   -- This stands for the number of insurers.                             
    NoI : constant Integer := 3;    
    
    -- Note that in my system, insurance companies are initialized in Init
@@ -73,7 +74,7 @@ is
          Insurance : UserID := -1;
          InsurancePermissionHB : Boolean := False;
          InsurancePermissionGL : Boolean := False;
-         InsurancePermissionSN : Boolean := False;
+         InsurancePermissionSN : Boolean := True;
          
          Friend : UserID := -1;
          FriendPermissionHB : Boolean := False;
@@ -89,20 +90,23 @@ is
          GeoLocation : GPSLocation := (0.0, 0.0);
          StepNum : Footsteps := 0;
          
-         -- The number of emergency happened to the wearer.
-      --   NumOfEvent : Integer := 0;
-         
-         -- The location and vital stored for future use.
-      --   EventLocations : EventLocationList(1..EventStorageNum);
-      --   EventVitals : EventVitalList(1..EventStorageNum);
-      end record;
+      end record ;
    
    -- The users array stored the created users.    
    Users : array (UserID range UserID(1)..UserID(MAX_USERID)) of Wearers;
    
-   procedure Init;
-   function CreateUser return UserID;
+   procedure Init 
+     with Post => (AutoIncrementalBase = 1 and nextRecordIndex = 0);
+   function CreateUser return UserID 
+     with 
+      Global => (AutoIncrementalBase, Users),
+       Pre => Integer(AutoIncrementalBase) <= MAX_USERID,
+       Post => (AutoIncrementalBase'Old = CreateUser'Result and 
+                  AutoIncrementalBase = CreateUser'Result +1) --and 
+     --(for all K in 1 .. Integer(AutoIncrementalBase))
+   ;
    procedure SetInsurer(Wearer : in UserID; Insurer : in UserID);
+      
    function ReadInsurer(Wearer : in UserID) return UserID;
    procedure RemoveInsurer(Wearer : in UserID);
    procedure SetFriend(Wearer : in UserID; NewFriend : in UserID);

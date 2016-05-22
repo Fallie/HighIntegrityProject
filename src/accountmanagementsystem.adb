@@ -3,7 +3,9 @@ with Ada.Integer_Text_IO; use Ada.Integer_Text_IO;
 with Measures; use Measures;
 with Emergency; use Emergency;
 
-package body AccountManagementSystem is
+package body AccountManagementSystem    
+   with SPARK_Mode => On
+is
 
    
    -- Initialization. Companies are created from MAX_USERID-n+1 to MAX_USERID
