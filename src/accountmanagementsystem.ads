@@ -99,13 +99,13 @@ is
      with Post => (AutoIncrementalBase = 1 and nextRecordIndex = 0);
    
    --remembre the emergency id must be 0
-   function CreateUser return UserID 
+   function ReturnUser return UserID 
      with 
-      Global => (Input => (AutoIncrementalBase, Users)),
+      Global => (Input => AutoIncrementalBase),
       Pre => Integer(AutoIncrementalBase) <= MAX_USERID,
-      Post => (AutoIncrementalBase -1 = CreateUser'Result);
+      Post => (AutoIncrementalBase -1 = ReturnUser'Result);
    
-   procedure IncrementUser(thisWearer : Wearers)
+   procedure CreateUser
      with Global => (In_Out => (AutoIncrementalBase, Users)),
              Post => (AutoIncrementalBase'Old = AutoIncrementalBase -1);
    

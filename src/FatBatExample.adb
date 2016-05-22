@@ -42,9 +42,12 @@ begin
    Init;
 
    -- Creating two wearers.
-   Wearer1 := CreateUser;
-   Wearer2 := CreateUser;
-   Wearer3 := CreateUser;
+   CreateUser;
+   Wearer1 := ReturnUser;
+   CreateUser;
+   Wearer2 := ReturnUser;
+   CreateUser;
+   Wearer3 := ReturnUser;
 
    -- Setting wearer2 as wearer1´s friend.
    SetFriend(Wearer1,Wearer2);

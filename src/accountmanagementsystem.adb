@@ -24,33 +24,36 @@ is
    
    -- Users are created here. The userID will be auto-incremented.
    -- Each user is assigned to the list of Users. return -1 means invalid.
-   function CreateUser return UserID is
+   function ReturnUser return UserID is
       thisWearer : Wearers;
+      auto : UserID := AutoIncrementalBase;
+   begin
+    if Integer(auto) < MAX_USERID-NoI+1 then 
+         return auto;
+    else 
+         return -1;
+    end if; 
+   end ReturnUser;
+   
+   procedure CreateUser is 
+       thisWearer : Wearers;
    begin
       if Integer(AutoIncrementalBase) < MAX_USERID-NoI+1 then
-         thisWearer.ID := AutoIncrementalBase;
-         Users(AutoIncrementalBase) := thisWearer;
-         AutoIncrementalBase := AutoIncrementalBase + 1;
-         return Users(AutoIncrementalBase-1).ID;
-      else
-         Put_Line("Sorry! Not enough storage for creating new user.");
-         return -1;
-      end if; 
+      Users(AutoIncrementalBase).ID := AutoIncrementalBase;
+      AutoIncrementalBase := AutoIncrementalBase + 1;
+      end if;
    end CreateUser;
    
+     
    -- Insurers are set here. The procedure first checks if the wearer exists.
    -- If InsurerID is in the range of insurer, 
    -- the user is able to set this id as his insurer.
    procedure SetInsurer(Wearer : in UserID; Insurer : in UserID) is
    begin
-      if Wearer>AutoIncrementalBase-1 or Wearer = 0 or Wearer = -1 then
-         Put_Line("Sorry! This wearer does not exist.");
-      else 
+      if Wearer<=AutoIncrementalBase-1 and Wearer /= 0 and Wearer /= -1 then
          if Integer(Insurer) > MAX_USERID-NoI and 
            Integer(Insurer) < MAX_USERID+1 then
             Users(Wearer).Insurance := Insurer;
-         else
-            Put_Line("Sorry! This is not an insurer.");
          end if;
       end if;
    end SetInsurer;
@@ -60,7 +63,6 @@ is
    function ReadInsurer(Wearer : in UserID) return UserID is
    begin
       if Wearer>AutoIncrementalBase-1 or Wearer = 0 or Wearer = -1 then
-         Put_Line("Sorry! This wearer does not exist.");
          return -1;
       else 
          return Users(Wearer).Insurance;
@@ -71,9 +73,7 @@ is
    -- The precedure first checks if the wearer exists.
    procedure RemoveInsurer(Wearer : in UserID) is
    begin
-      if Wearer>AutoIncrementalBase-1 or Wearer = 0 or Wearer = -1 then
-         Put_Line("Sorry! This wearer does not exist.");
-      else 
+      if Wearer<=AutoIncrementalBase-1 and Wearer /= 0 and Wearer /= -1 then
          Users(Wearer).Insurance := -1;
          Users(Wearer).InsurancePermissionHB := False;
          Users(Wearer).InsurancePermissionGL := False;
@@ -85,29 +85,21 @@ is
    -- Then it checks if NewFriend is a potential
    -- friend of the wearer, that is, NewFriend should not be himself, 
    -- emergency, an insurer, or anyone who is not a wearer in the system.
-   procedure SetFriend(Wearer : in UserID; NewFriend : in UserID) is
+   procedure SetFriend(Wearer : in UserID; NewFriend : in UserID)is
+     
    begin
-      if Wearer>AutoIncrementalBase-1 or Wearer = 0 or Wearer = -1 then
-         Put_Line("Sorry! This wearer does not exist.");
-      else 
-         if NewFriend = Wearer then
-            Put_Line("Cannot set the wearer as his friend.");
-         else
-            if NewFriend = 0 then
-               Put_Line("Cannot set the emergency as a friend.");
-            else
-               if Integer(NewFriend) > MAX_USERID-NoI 
-                 and Integer(NewFriend) < MAX_USERID+1 then
-                  Put_Line("Cannot set an insurer as a friend.");
-               else
-                  if NewFriend > AutoIncrementalBase 
-                    and Integer(NewFriend) < MAX_USERID-NoI+1 then
-                     Put_Line("Sorry! This friend does not exist.");
-                  else
+      if Wearer<=AutoIncrementalBase-1 and Wearer /= 0 and Wearer /= -1 then
+      
+         if NewFriend /= Wearer and NewFriend /= 0 then
+               if not (Integer(NewFriend) > MAX_USERID-NoI 
+                 and Integer(NewFriend) < MAX_USERID+1)then
+                  
+                  if not (NewFriend > AutoIncrementalBase 
+                    and Integer(NewFriend) < MAX_USERID-NoI+1 )then
+                     
                      Users(Wearer).Friend := NewFriend;
                   end if;
                end if;
-            end if;
          end if;
       end if;
    end SetFriend;
@@ -117,7 +109,6 @@ is
    function ReadFriend(Wearer : in UserID) return UserID is
    begin
       if Wearer>AutoIncrementalBase-1 or Wearer = 0 or Wearer = -1 then
-         Put_Line("Sorry! This wearer does not exist.");
          return -1;
       else 
          return Users(Wearer).Friend;
@@ -128,9 +119,7 @@ is
    -- The precedure first checks if the wearer exists.
    procedure RemoveFriend(Wearer : in UserID) is
    begin
-      if Wearer>AutoIncrementalBase-1 or Wearer = 0 or Wearer = -1 then
-         Put_Line("Sorry! This wearer does not exist.");
-      else 
+      if Wearer<=AutoIncrementalBase-1 and Wearer /= 0 and Wearer /= -1 then
          Users(Wearer).Friend := -1; 
          Users(Wearer).FriendPermissionHB := False;
          Users(Wearer).FriendPermissionGL := False;
@@ -145,22 +134,16 @@ is
                                      Other : in UserID;
                                      Allow : in Boolean) is 
    begin
-      if Wearer>AutoIncrementalBase-1 or Wearer = 0 or Wearer = -1 then
-         Put_Line("Sorry! This wearer does not exist.");
-      else
+      if Wearer<=AutoIncrementalBase-1 and Wearer /= 0 and Wearer /= -1 then
          if Other = 0 then
             Users(Wearer).EmergencyPermissionHB := Allow;
          else
-            if Other = Wearer then
-               Put_Line("Cannot change the vital permission to oneself.");
-            else
+            if Other /= Wearer then
                if Other = Users(Wearer).Insurance then
                   Users(Wearer).InsurancePermissionHB := Allow;
                else 
                   if Other = Users(Wearer).Friend then
                      Users(Wearer).FriendPermissionHB := Allow;
-                  else
-                     Put_Line("This one is not wearer´s contact.");
                   end if;
                end if;
             end if;
@@ -175,12 +158,9 @@ is
                                         Other : in UserID;
                                         Allow : in Boolean) is
    begin
-      if Wearer>AutoIncrementalBase-1 or Wearer = 0 or Wearer = -1 then
-         Put_Line("Sorry! This wearer does not exist.");
-      else
-         if Other = Wearer then
-            Put_Line("Cannot change the footstep permission to oneself.");
-         else
+      if Wearer<=AutoIncrementalBase-1 and Wearer /= 0 and Wearer /= -1 then
+  
+         if Other /= Wearer then
             if Other = Users(Wearer).Insurance then
                Users(Wearer).InsurancePermissionSN := Allow;
             else 
@@ -189,8 +169,6 @@ is
                else
                   if Other = 0 then
                      Users(Wearer).EmergencyPermissionSN := Allow;
-                  else
-                     Put_Line("This one is not wearer´s contact.");
                   end if;
                end if;
             end if;
@@ -205,22 +183,16 @@ is
                                        Other : in UserID;
                                        Allow : in Boolean) is 
    begin
-      if Wearer>AutoIncrementalBase-1 or Wearer = 0 or Wearer = -1 then
-         Put_Line("Sorry! This wearer does not exist.");
-      else
+      if Wearer<=AutoIncrementalBase-1 and Wearer /= 0 and Wearer /= -1 then
          if Other = 0 then
             Users(Wearer).EmergencyPermissionGL := Allow;
          else
-            if Other = Wearer then
-               Put_Line("Cannot change the location permission to oneself.");
-            else
+            if Other /= Wearer then
                if Other = Users(Wearer).Insurance then
                   Users(Wearer).InsurancePermissionGL := Allow;
                else 
                   if Other = Users(Wearer).Friend then
                      Users(Wearer).FriendPermissionGL := Allow;
-                  else
-                     Put_Line("This one is not wearer´s contact.");
                   end if;
                end if;
             end if;
@@ -232,18 +204,15 @@ is
    -- The procedure first check if the wearer exists.
    -- The vital can be saved to one wearer only if he is a wearer.
    procedure UpdateVitals(Wearer : in UserID; NewVitals : in BPM) is 
+    
    begin
-      if (Wearer > AutoIncrementalBase-1 and 
-         Integer(Wearer) < MAX_USERID-NoI+1) or Wearer = -1 then
-         Put_Line("Sorry!This user does not exist.");
-      else
-         if Integer(Wearer) > MAX_USERID-NoI and 
-            Integer(Wearer) < MAX_USERID+1 then
-            Put_Line("Sorry!This is an insurer.");
-         else
-            if Wearer = 0 then
-               Put_Line("Sorry!This is the emergency service.");
-            else 
+      if not ((Wearer > AutoIncrementalBase-1 and 
+         Integer(Wearer) < MAX_USERID-NoI+1) or Wearer = -1 )then
+         
+         if not (Integer(Wearer) > MAX_USERID-NoI and 
+            Integer(Wearer) < MAX_USERID+1 )then
+          
+            if Wearer /= 0 then 
                Users(Wearer).HeartBeat := NewVitals;
             end if;
          end if;
@@ -254,19 +223,14 @@ is
    -- The procedure first check if the wearer exists.
    -- The footStep can be saved to one wearer only if he is a wearer.
    procedure UpdateFootsteps
-             (Wearer : in UserID; NewFootsteps : in Footsteps) is
+     (Wearer : in UserID; NewFootsteps : in Footsteps) is
    begin
-      if (Wearer > AutoIncrementalBase-1 and 
-         Integer(Wearer) < MAX_USERID-NoI+1) or Wearer = -1 then
-         Put_Line("Sorry!This user does not exist.");
-      else
-         if Integer(Wearer) > MAX_USERID-NoI and 
-            Integer(Wearer) < MAX_USERID+1 then
-            Put_Line("Sorry!This is an insurer.");
-         else
-            if Wearer = 0 then
-               Put_Line("Sorry!This is the emergency service.");
-            else 
+      if not ((Wearer > AutoIncrementalBase-1 and 
+         Integer(Wearer) < MAX_USERID-NoI+1) or Wearer = -1 )then
+         
+         if not (Integer(Wearer) > MAX_USERID-NoI and 
+            Integer(Wearer) < MAX_USERID+1) then
+            if Wearer /= 0 then
                Users(Wearer).StepNum := NewFootsteps;
             end if;
          end if;
@@ -277,19 +241,13 @@ is
    -- The procedure first check if the wearer exists.
    -- The location can be saved to one wearer only if he is a wearer.
    procedure UpdateLocation
-             (Wearer : in UserID; NewLocation : in GPSLocation) is
+     (Wearer : in UserID; NewLocation : in GPSLocation) is
    begin
-      if (Wearer > AutoIncrementalBase-1 and 
-         Integer(Wearer) < MAX_USERID-NoI+1) or Wearer = -1 then
-         Put_Line("Sorry!This user does not exist.");
-      else
-         if Integer(Wearer) > MAX_USERID-NoI and 
-            Integer(Wearer) < MAX_USERID+1 then
-            Put_Line("Sorry!This is an insurer.");
-         else
-            if Wearer = 0 then
-               Put_Line("Sorry!This is the emergency service.");
-            else 
+      if not ((Wearer > AutoIncrementalBase-1 and 
+         Integer(Wearer) < MAX_USERID-NoI+1) or Wearer = -1 )then
+         if not (Integer(Wearer) > MAX_USERID-NoI and 
+            Integer(Wearer) < MAX_USERID+1 )then
+            if Wearer /= 0 then
                Users(Wearer).GeoLocation := NewLocation;
             end if;
          end if;
@@ -313,7 +271,6 @@ is
          Users(TargetUser).InsurancePermissionHB = True)) then
          return Users(TargetUser).HeartBeat;
       else
-         Put_Line("Invalid request!!!");
          return invalidVital;
       end if;
    end ReadVitals;
@@ -335,7 +292,6 @@ is
          Users(TargetUser).InsurancePermissionHB = True)) then
          return Users(TargetUser).StepNum;
       else
-         Put_Line("Invalid request!!!"); 
          return invalidFootStep;
       end if;
    end ReadFootsteps;
@@ -357,7 +313,6 @@ is
          Users(TargetUser).InsurancePermissionHB = True)) then
          return Users(TargetUser).GeoLocation;
       else
-         Put_Line("Invalid request!!!");
          return invalidLocation;
       end if;
    end ReadLocation;
@@ -380,4 +335,5 @@ is
          nextRecordIndex := nextRecordIndex +1;
       end if;
    end ContactEmergency;
+   
 end AccountManagementSystem;
