@@ -101,10 +101,13 @@ is
    --remembre the emergency id must be 0
    function CreateUser return UserID 
      with 
-      Global => (AutoIncrementalBase, Users),
+      Global => (Input => (AutoIncrementalBase, Users)),
       Pre => Integer(AutoIncrementalBase) <= MAX_USERID,
-      Post => (AutoIncrementalBase'Old = CreateUser'Result and 
-                 AutoIncrementalBase = CreateUser'Result);
+      Post => (AutoIncrementalBase -1 = CreateUser'Result);
+   
+   procedure IncrementUser(thisWearer : Wearers)
+     with Global => (In_Out => (AutoIncrementalBase, Users)),
+             Post => (AutoIncrementalBase'Old = AutoIncrementalBase -1);
    
    procedure SetInsurer(Wearer : in UserID; Insurer : in UserID)
       with 
