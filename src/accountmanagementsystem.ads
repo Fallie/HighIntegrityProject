@@ -1,232 +1,123 @@
 with Measures; use Measures;
 
--- This package defines a set of procedures and functions for the account 
--- management system of FatBat. And the system also update vitals, locations  
--- and footsteps of a wearer. Furthermore, it calls the 
--- Emergency.ContactEmergency in case of passed the check of the 
--- procedure called ContactEmergency.
-
-package AccountManagementSystem with
-  SPARK_Mode,
-  Initializes => (NoI, AutoIncrementalBase, minUser,
-                  invalidVital,invalidFootStep,invalidLocation,nextRecordIndex,
-                  Users,MAX_HISTORY),
-  Initial_Condition => (AutoIncrementalBase = 1 and nextRecordIndex = 0)
+-- NOTE: This package exposes the types and variables of the package.
+-- This makes the assignment a bit simpler, but is generally not
+-- considered good style.
+-- For an example that hides these while maintaining abstraction and
+-- elegence, see the example at
+-- {SPARK_2014_HOME}/share/examples/spark/natural/natural_set.ads
+package AccountManagementSystem
+      with SPARK_Mode
 is
+  
+   -- An array indicating whether a user ID is taken
+   type UsersArray is array(UserID) of Boolean;
+   
+   -- A map from users to other users
+   type UserUserArray is array(UserID) of UserID;
+   
+   -- Arrays for wearer data
+   type VitalsArray is array(UserID) of BPM;
+   type FootstepsArray is array(UserID) of Footsteps;
+   type LocationsArray is array(UserID) of GPSLocation;
+   
+   -- The list of users, and the latest user
+   Users : UsersArray; 
+   LatestUser : UserID := UserID'First;
+
+   -- Each users' insurer and friend
+   Insurers : UserUserArray;
+   Friends : UserUserArray;
+   
+   -- Each users' personal data
+   Vitals : VitalsArray;
+   MFootsteps : FootstepsArray;
+   Locations : LocationsArray;
+   
+   -- Create and initialise the account management system
+   procedure Init with 
+     Post => (for all I in Users'Range => Users(I) = False) and
+     (for all I in Friends'Range => Friends(I) = UserID'First) and
+     (for all I in Vitals'Range => Vitals(I) = BPM'First) and
+     (for all I in MFootsteps'Range => MFootsteps(I) = Footsteps'First) and
+     (for all I in Locations'Range => Locations(I) = (0.0, 0.0));
      
-   -- This stands for the number of insurers.                             
-   NoI : constant Integer := 3;    
+   procedure CreateUser(NewUser : out UserID) with
+     Pre => LatestUser < UserID'Last,
+     Post => Users(NewUser) = True;
    
-   -- Note that in my system, insurance companies are initialized in Init
-   -- procedure. And the number of insurance company is a constant variable.
-   -- Insurers occupy the last NoI spaces of Users array that record all users.
-   -- Thus, I do not have to create insurers via calling procedures.
-   
-   -- This is the basis of the auto-incremental UserID, starting from 1.
-   AutoIncrementalBase : UserID := 1;
-   
-   -- The wearers' userID starts from the value of minUser.--?
-   minUser : UserID := 1;          
-   
-   -- The invalid return if cannot reach a vital.
-   invalidVital : BPM := -1;
-   
-   -- The invalid return if cannot reach a footstep.
-   invalidFootStep : Footsteps := 0;
-   
-   -- The invalid return if cannot reach a location.
-   invalidLocation : GPSLocation := (0.0, 0.0);
-   
-   -- The number of emergency information that can be stored per person.
-   --EventStorageNum : constant Positive := 10;     
-    
-   -- The list of storing location in case of emergency.
-   --type EventLocationList is array (Positive range <>) of GPSLocation; 
-   
-   -- The list of storing vitals in case of emergency.
-   --type EventVitalList is array (Positive range <>) of BPM;
-   
-   --
-   
-   MAX_HISTORY : Integer := 100;
-    type EmergencyRecord is
-      record
-         user :UserID;
-         GeoLocation :GPSLocation;
-         HeartBeat :BPM;
-      end record;
-
-   type EmergencyList is array (0 .. MAX_HISTORY) of EmergencyRecord;
-
-   
-   
-   -- to point to the nex avaliable Index for record
-   nextRecordIndex : Integer := 0;
-   emergHistory :EmergencyList;
-   
-   --The data structure of a wearer.
-   type Wearers is
-      record
-         ID : UserID := -1;
-         
-         -- The insurance and its permission. HB is heart beat. GL is 
-         -- geoLocation.SN is stepNumber. Same for friend and emergency.
-         Insurance : UserID := -1;
-         InsurancePermissionHB : Boolean := False;
-         InsurancePermissionGL : Boolean := False;
-         InsurancePermissionSN : Boolean := True;
-         
-         Friend : UserID := -1;
-         FriendPermissionHB : Boolean := False;
-         FriendPermissionGL : Boolean := False;
-         FriendPermissionSN : Boolean := False;
-         
-         Emergency : UserID := 0;
-         EmergencyPermissionHB : Boolean := False;
-         EmergencyPermissionGL : Boolean := False;
-         EmergencyPermissionSN : Boolean := False;
-         
-         HeartBeat : BPM := -1;
-         GeoLocation : GPSLocation := (0.0, 0.0);
-         StepNum : Footsteps := 0;
-         
-      end record;
-   
-   -- The users array stored the created users.    
-   Users : array (UserID range UserID(1)..UserID(MAX_USERID)) of Wearers;
-   
-   procedure Init 
-     with Post => (AutoIncrementalBase = 1 and nextRecordIndex = 0);
-   
-   --remembre the emergency id must be 0
-   function ReturnUser return UserID 
-     with 
-      Global => (Input => AutoIncrementalBase),
-      Pre => Integer(AutoIncrementalBase) <= MAX_USERID,
-      Post => (AutoIncrementalBase -1 = ReturnUser'Result);
-   
-   procedure CreateUser
-     with Global => (In_Out => (AutoIncrementalBase, Users)),
-             Post => (AutoIncrementalBase'Old = AutoIncrementalBase -1);
-   
-   procedure SetInsurer(Wearer : in UserID; Insurer : in UserID)
-      with 
-      Global => ( In_Out => Users, Input => AutoIncrementalBase),
-      Pre => (Wearer < AutoIncrementalBase and Insurer < AutoIncrementalBase),
-      Post => (if Wearer /= Insurer then
-                Users = Users'Old'Update(Wearer => Users'Old(Wearer)'Update
-               (InsurancePermissionHB => False,
-               InsurancePermissionGL => False, 
-               InsurancePermissionSN => True,
-                Insurance => Insurer))
-                else
-                  Users = Users'Old
-             );
-
+   procedure SetInsurer(Wearer : in UserID; Insurer : in UserID) with
+     Pre => Wearer in Users'Range and Insurer in Users'Range,
+     Post => (Insurers = Insurers'Old'Update(Wearer => Insurer));
+              
    function ReadInsurer(Wearer : in UserID) return UserID
-     with 
-       Global => (Input => (Users, AutoIncrementalBase)),
-       Pre => Wearer < AutoIncrementalBase,
-       Post => ReadInsurer'Result = Users(Wearer).Insurance;
-   
-   procedure RemoveInsurer(Wearer : in UserID) 
-     with 
-       Global => ( In_Out => Users, Input => AutoIncrementalBase),
-       Pre => (Wearer < AutoIncrementalBase),
-       Post => Users = Users'Old'Update(Wearer => Users'Old(Wearer)'Update
-               (InsurancePermissionHB => False,
-               InsurancePermissionGL => False, 
-               InsurancePermissionSN => True,
-                Insurance => -1));
-   
-   procedure SetFriend(Wearer : in UserID; NewFriend : in UserID);
-   function ReadFriend(Wearer : in UserID) return UserID;
-   procedure RemoveFriend(Wearer : in UserID);
-   
-   procedure UpdateVitalsPermissions(Wearer : in UserID; 
-				     Other : in UserID;
-                                     Allow : in Boolean)
-     with 
-       Global => ( In_Out => Users, Input => AutoIncrementalBase),
-       Pre => (Wearer < AutoIncrementalBase and Other < AutoIncrementalBase),
-       Post => (if Users(Wearer).Insurance = Other then
-                 Users = Users'Old'Update(Wearer => Users'Old(Wearer)'Update
-                 (InsurancePermissionHB => Allow))
-               else (if Users(Wearer).Emergency = Other then
-                 Users = Users'Old'Update(Wearer => Users'Old(Wearer)'Update
-                 (EmergencyPermissionHB => Allow))
-               else (if Users(Wearer).Friend = Other then
-                  Users = Users'Old'Update(Wearer => Users'Old(Wearer)'Update
-                 (FriendPermissionHB => Allow))
-               else
-                 Users = Users'Old)));
+   is (Insurers(Wearer));
 
+   procedure RemoveInsurer(Wearer : in UserID) with
+     Pre => Insurers(Wearer) /= UserID'First,
+     Post => (Insurers = Insurers'Old'Update(Wearer => UserID'First));
 
-   procedure UpdateFootstepsPermissions(Wearer : in UserID; 
-					Other : in UserID;
-                                        Allow : in Boolean)
-       with 
-       Global => ( In_Out => Users, Input => AutoIncrementalBase),
-       Pre => (Wearer < AutoIncrementalBase and Other < AutoIncrementalBase),
-     Post => (if Users'Old(Wearer).Insurance = Other then
-                 (if Allow = False then Users = Users'Old'Update
-                 (Wearer => Users'Old(Wearer)'Update(
-                   InsurancePermissionHB => False,
-                   InsurancePermissionGL => False, 
-                   InsurancePermissionSN => True,
-                   Insurance => -1)))
-               else (if Users(Wearer).Emergency = Other then
-                 Users = Users'Old'Update(Wearer => Users'Old(Wearer)'Update
-                 (EmergencyPermissionSN => Allow))
-               else (if Users(Wearer).Friend = Other then
-                  Users = Users'Old'Update(Wearer => Users'Old(Wearer)'Update
-                 (FriendPermissionSN => Allow))
-               else
-                 Users = Users'Old)));
+   procedure SetFriend(Wearer : in UserID; Friend : in UserID) with
+     Pre => Wearer in Users'Range and Friend in Users'Range,
+     Post => Friends = Friends'Old'Update(Wearer => Friend);
+              
+   function ReadFriend(Wearer : in UserID) return UserID
+   is (Friends(Wearer));
+
+   procedure RemoveFriend(Wearer : in UserID) with
+     Pre => Friends(Wearer) /= UserID'First,
+     Post => (Friends = Friends'Old'Update(Wearer => UserID'First));
+
+   procedure UpdateVitals(Wearer : in UserID; NewVitals : in BPM) with
+     Pre => Wearer in Users'Range,
+     Post => Vitals = Vitals'Old'Update(Wearer => NewVitals);
    
-   
-   procedure UpdateLocationPermissions(Wearer : in UserID;
-				       Other : in UserID;
-                                       Allow : in Boolean);
-   
-   procedure UpdateVitals(Wearer : in UserID; NewVitals : in BPM)     
-     with 
-       Global => ( In_Out => Users, Input => AutoIncrementalBase),
-       Pre => (Wearer < AutoIncrementalBase and NewVitals /= -1),
-       Post => Users = Users'Old'Update(Wearer => 
-                          Users'Old(Wearer)'Update( HeartBeat => NewVitals));
-   procedure UpdateFootsteps(Wearer : in UserID; NewFootsteps : in Footsteps); 
-   procedure UpdateLocation(Wearer : in UserID; NewLocation : in GPSLocation);
-   
-   function ReadVitals(Requester : in UserID; TargetUser : in UserID) 
-                       return BPM
-     with 
-       Global => (Input => (Users, AutoIncrementalBase, invalidVital)),
-       Pre => (Requester < AutoIncrementalBase and TargetUser < AutoIncrementalBase),
-       Post => (if Users(TargetUser).Insurance = Requester and Users(TargetUser).InsurancePermissionHB = True then
-                 ReadVitals'Result = Users(TargetUser).HeartBeat
-               else (if Users(TargetUser).Emergency = Requester and Users(TargetUser).EmergencyPermissionHB = True then
-                 ReadVitals'Result = Users(TargetUser).HeartBeat
-               else (if Users(TargetUser).Friend = Requester and Users(TargetUser) .FriendPermissionHB = True then
-                 ReadVitals'Result = Users(TargetUser).HeartBeat
-               else
-                 ReadVitals'Result = invalidVital)));
-   function ReadFootsteps(Requester : in UserID; TargetUser : in UserID) 
-                          return Footsteps;
-   function ReadLocation(Requester : in UserID; TargetUser : in UserID) 
-                         return GPSLocation;
-   procedure ContactEmergency(Wearer : in UserID; Location : in GPSLocation;
-                              Vitals : in BPM)
+   procedure UpdateFootsteps(Wearer : in UserID; NewFootsteps : in Footsteps)
      with
-       Global => (In_out => (emergHistory, nextRecordIndex), Input => (Users, AutoIncrementalBase, invalidVital, invalidLocation)),
-       Pre => (Wearer < AutoIncrementalBase and Location /= invalidLocation and Vitals /= invalidVital),
-       Post => (if Users(Wearer).EmergencyPermissionHB = True then
-                    emergHistory = emergHistory'Old'Update(nextRecordIndex'Old => 
-                      emergHistory'Old(nextRecordIndex'Old)'Update(user => Wearer,
-                                                                      GeoLocation => Location,
-                                                                      HeartBeat => Vitals)) and 
-                  nextRecordIndex = nextRecordIndex'Old +1
-                  else emergHistory = emergHistory'Old and 
-                    nextRecordIndex = nextRecordIndex'Old);
+     Pre => Wearer in Users'Range,
+     Post => MFootsteps = MFootsteps'Old'Update(Wearer => NewFootsteps);
+     
+   procedure UpdateLocation(Wearer : in UserID; NewLocation : in GPSLocation) 
+     with
+     Pre => Wearer in Users'Range,
+     Post => Locations = Locations'Old'Update(Wearer => NewLocation);
+     
+   -- An partial, incorrect specification.
+   -- Note that there is no need for a corresponding body for this function. 
+   -- These are best suited for functions that have simple control flow
+   function ReadVitals(Requester : in UserID; TargetUser : in UserID) return BPM 
+   is (if Friends(TargetUser) = Requester then
+          Vitals(TargetUser)
+       else BPM'First);
+   
+   -- An alternative specification using postconditions. These require package
+   -- bodies, and are better suited to functions with non-trivial control flow,
+   -- and are required for functions with preconditions
+   function ReadVitals_Alt(Requester : in UserID; TargetUser : in UserID)
+                           return BPM 
+   with Post => ReadVitals_Alt'Result = (if Friends(TargetUser) = Requester then
+          Vitals(TargetUser)
+       else BPM'First);
+ 
+-- function ReadFootsteps(Requester : in UserID; TargetUser : in UserID) 
+--    return Footsteps;
+-- function ReadLocation(Requester : in UserID; TargetUser : in UserID)
+--    return GPSLocation;
+--        
+-- procedure UpdateVitalsPermissions(Wearer : in UserID; 
+--  				     Other : in UserID;
+-- 				     Allow : in Boolean);
+--
+-- procedure UpdateFootstepsPermissions(Wearer : in UserID; 
+--  					Other : in UserID;
+--  					Allow : in Boolean);
+--     
+-- procedure UpdateLocationPermissions(Wearer : in UserID;
+-- 				       Other : in UserID;
+--  				       Allow : in Boolean);
+--
+-- procedure ContactEmergency(Wearer : in UserID; 
+--                            Location : in GPSLocation; 
+--                            Vitals : in BPM);
 
 end AccountManagementSystem;

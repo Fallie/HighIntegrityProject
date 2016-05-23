@@ -1,5 +1,7 @@
 -- This package provides some basic declarations for the FatBat system,
-package Measures is
+package Measures 
+  with SPARK_Mode
+is
   
    -- The type for user identities
    MAX_USERID : constant Integer := 100;   
