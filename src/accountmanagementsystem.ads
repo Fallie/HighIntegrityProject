@@ -7,7 +7,7 @@ with Measures; use Measures;
 -- elegence, see the example at
 -- {SPARK_2014_HOME}/share/examples/spark/natural/natural_set.ads
 package AccountManagementSystem
-      with SPARK_Mode
+with SPARK_Mode
 is
   
    -- An array indicating whether a user ID is taken
@@ -38,7 +38,7 @@ is
    
    -- kaiqi to point to the nex avaliable Index for record
    nextRecordIndex : Integer := 0;
-   historyRecord :EmergencyArray;
+   HistoryRecord :EmergencyArray;
 
    
    --kaiqi permission for insurer
@@ -82,17 +82,45 @@ is
      (for all I in Friends'Range => Friends(I) = UserID'First) and
      (for all I in Vitals'Range => Vitals(I) = BPM'First) and
      (for all I in MFootsteps'Range => MFootsteps(I) = Footsteps'First) and
-     (for all I in Locations'Range => Locations(I) = (0.0, 0.0));
+     (for all I in Locations'Range => Locations(I) = (0.0, 0.0)) and
+     
+     (for all I in permiOfStepsForInsurer'Range => permiOfStepsForInsurer(I) = True) and
+     (for all I in permiOfVitalsForInsurer'Range => permiOfVitalsForInsurer(I) = False) and
+     (for all I in permiOfLocasForInsurer'Range => permiOfLocasForInsurer(I) = False) and
+     
+     (for all I in permiOfStepsForFriend'Range => permiOfStepsForFriend(I) = False) and
+     (for all I in permiOfVitalsForFriend'Range => permiOfVitalsForFriend(I) = False) and
+     (for all I in permiOfLocasForFriend'Range => permiOfLocasForFriend(I) = False) and
+     
+     (for all I in permiOfStepsForEmerg'Range => permiOfStepsForEmerg(I) = False) and
+     (for all I in permiOfVitalsForEmerg'Range => permiOfVitalsForEmerg(I) = False) and
+     (for all I in permiOfLocasForEmerg'Range => permiOfLocasForEmerg(I) = False) and
+     
+     (for all I in HistoryRecord'Range => HistoryRecord(I) = (Null_UserID,Null_Location,Null_BPM)) and
+     
+     (LatestUser = EmergencyID) and 
+     (nextRecordIndex = 0);
      
    procedure CreateUser(NewUser : out UserID) with
-     Pre => LatestUser < UserID'Last,
-     Post => Users(NewUser) = True;
+     
+     Pre => (LatestUser < UserID'Last),
+     Post => (Users = Users'Old'Update(NewUser => True)) and
+     (permiOfLocasForEmerg = permiOfLocasForEmerg'Old'Update(NewUser => False)) and
+     (permiOfVitalsForEmerg = permiOfVitalsForEmerg'Old'Update(NewUser => False)) and
+     (permiOfStepsForEmerg = permiOfStepsForEmerg'Old'Update(NewUser => False)) and
+     (Users'Old(NewUser) = False);
    
    procedure SetInsurer(Wearer : in UserID; Insurer : in UserID) with
-     Pre => Wearer in Users'Range and Insurer in Users'Range,
-     Post => (Insurers = Insurers'Old'Update(Wearer => Insurer));
+
+     Pre => Wearer in Users'Range and Insurer in Users'Range and 
+     (Users(Wearer) = True) and (Users(Insurer) = True),
+     Post => (if(Insurers'Old(Wearer) /= Insurer) then
+     (Insurers = Insurers'Old'Update(Wearer => Insurer)) and 
+     (permiOfStepsForInsurer = permiOfStepsForInsurer'Old'Update(Wearer => True)) and
+     (permiOfVitalsForInsurer = permiOfVitalsForInsurer'Old'Update(Wearer => False)) and
+     (permiOfLocasForInsurer = permiOfLocasForInsurer'Old'Update(Wearer => False)));
               
-   function ReadInsurer(Wearer : in UserID) return UserID
+   function ReadInsurer(Wearer : in UserID) return UserID 
    is (Insurers(Wearer));
 
    procedure RemoveInsurer(Wearer : in UserID) with
@@ -139,7 +167,14 @@ is
                            return BPM 
    with Post => ReadVitals_Alt'Result = (if Friends(TargetUser) = Requester then
           Vitals(TargetUser)
-       else BPM'First);
+                                             else BPM'First);
+   
+   --function Fact() return Boolean is 
+   --begin
+     -- return  (for all I in 1 .. LatestUser => Friends(I) /= Insurers(I);
+   
+   --end Fact;
+   
  
 -- function ReadFootsteps(Requester : in UserID; TargetUser : in UserID) 
 --    return Footsteps;
