@@ -21,13 +21,55 @@ is
    type FootstepsArray is array(UserID) of Footsteps;
    type LocationsArray is array(UserID) of GPSLocation;
    
+   -- kaiqi Arrays for the historic record
+   MAX_HISTORY : constant Integer := 200;
+   
+   type EmergencyRecord is
+      record
+         user :UserID;
+         GeoLocation :GPSLocation;
+         HeartBeat :BPM;
+      end record;
+
+   type EmergencyArray is array (0 .. MAX_HISTORY) of EmergencyRecord;
+
+   -- kaiqi Array for the permissions 
+   type PermissionArray is array (UserID) of Boolean;
+   
+   -- kaiqi to point to the nex avaliable Index for record
+   nextRecordIndex : Integer := 0;
+   historyRecord :EmergencyArray;
+
+   
+   --kaiqi permission for insurer
+   permiOfStepsForInsurer : PermissionArray;
+   permiOfVitalsForInsurer : PermissionArray;
+   permiOfLocasForInsurer : PermissionArray;
+	
+   --kaiqi permissons for friends
+   permiOfStepsForFriend : PermissionArray;
+   permiOfVitalsForFriend : PermissionArray;
+   permiOfLocasForFriend : PermissionArray;
+	
+   --kaiqi permissons for emergency
+   permiOfStepsForEmerg : PermissionArray;
+   permiOfVitalsForEmerg : PermissionArray;
+   permiOfLocasForEmerg : PermissionArray;
+   
+   --kaiqi the constants needed
+   Null_UserID : constant UserID := -1;
+   Null_Footsteps : constant Footsteps := 0;
+   Null_BPM : constant BPM := -1;
+   Null_Location : constant GPSLocation := (0.0,0.0);
+   EmergencyID: constant UserID := 0;
+   
    -- The list of users, and the latest user
    Users : UsersArray; 
    LatestUser : UserID := UserID'First;
 
    -- Each users' insurer and friend
    Insurers : UserUserArray;
-   Friends : UserUserArray;
+   Friends : UserUserArray ;
    
    -- Each users' personal data
    Vitals : VitalsArray;
