@@ -40,7 +40,7 @@ is
       Friends(Wearer) := UserID'First;
    end RemoveFriend;
 
-   function ReadVitals_Alt(Requester : in UserID; TargetUser : in UserID)
+   function ReadVitals(Requester : in UserID; TargetUser : in UserID)
                            return BPM 
    is
    begin
@@ -49,7 +49,7 @@ is
       else 
          return BPM'First;
       end if;
-   end ReadVitals_Alt;
+   end ReadVitals;
    
    procedure UpdateVitals(Wearer : in UserID; NewVitals : in BPM) is 
    begin
@@ -65,6 +65,8 @@ is
    begin
       Locations(Wearer) := NewLocation;
    end UpdateLocation;
+   
+   
   
 --     procedure UpdateVitalsPermissions(Wearer : in UserID;
 --  				     Other : in UserID;
@@ -72,16 +74,24 @@ is
 --     begin
 --     end UpdateVitalsPermissions;
 --     
---     procedure UpdateFootstepsPermissions(Wearer : in UserID;
---  					Other : in UserID;
---  					Allow : in Boolean) is
---     begin
---     end UpdateFootstepsPermissions;
+     procedure UpdateFootstepsPermissions(Wearer : in UserID;
+  					Other : in UserID;
+  					Allow : in Boolean) is
+   begin
+      permiOfStepsForFriend(Wearer) := Allow;
+     end UpdateFootstepsPermissions;
 --     
 --     procedure UpdateLocationPermissions(Wearer : in UserID;
 --  				       Other : in UserID;
 --  				       Allow : in Boolean) is 
 --     begin
 --     end UpdateLocationPermissions;
---     
+
+   procedure ContactEmergency(Wearer : in UserID; 
+                              Location : in GPSLocation; 
+                              Vital : in BPM) is
+   begin
+      Vitals(Wearer) := Vital;
+   end ContactEmergency;
+    
 end AccountManagementSystem;

@@ -124,8 +124,11 @@ is
    is (Insurers(Wearer));
 
    procedure RemoveInsurer(Wearer : in UserID) with
-     Pre => Insurers(Wearer) /= UserID'First,
-     Post => (Insurers = Insurers'Old'Update(Wearer => UserID'First));
+     Pre => Insurers(Wearer) /= UserID'First and (Users(Wearer) = True) ,
+     Post => (Insurers = Insurers'Old'Update(Wearer => Null_UserID)) and
+     (permiOfStepsForInsurer = permiOfStepsForInsurer'Old'Update(Wearer => True)) and
+     (permiOfVitalsForInsurer = permiOfVitalsForInsurer'Old'Update(Wearer => False)) and
+     (permiOfLocasForInsurer = permiOfLocasForInsurer'Old'Update(Wearer => False));
 
    procedure SetFriend(Wearer : in UserID; Friend : in UserID) with
      Pre => Wearer in Users'Range and Friend in Users'Range,
@@ -139,7 +142,7 @@ is
      Post => (Friends = Friends'Old'Update(Wearer => UserID'First));
 
    procedure UpdateVitals(Wearer : in UserID; NewVitals : in BPM) with
-     Pre => Wearer in Users'Range,
+     Pre => Wearer in Users'Range and  (Users(Wearer) = True) and (Wearer /= Null_UserID),
      Post => Vitals = Vitals'Old'Update(Wearer => NewVitals);
    
    procedure UpdateFootsteps(Wearer : in UserID; NewFootsteps : in Footsteps)
@@ -155,29 +158,46 @@ is
    -- An partial, incorrect specification.
    -- Note that there is no need for a corresponding body for this function. 
    -- These are best suited for functions that have simple control flow
-   function ReadVitals(Requester : in UserID; TargetUser : in UserID) return BPM 
-   is (if Friends(TargetUser) = Requester then
-          Vitals(TargetUser)
-       else BPM'First);
+   --function ReadVitals(Requester : in UserID; TargetUser : in UserID) return BPM 
+   --is (if Friends(TargetUser) = Requester then
+   --       Vitals(TargetUser)
+   --    else BPM'First);
+   
+   
    
    -- An alternative specification using postconditions. These require package
    -- bodies, and are better suited to functions with non-trivial control flow,
    -- and are required for functions with preconditions
-   function ReadVitals_Alt(Requester : in UserID; TargetUser : in UserID)
+   --function ReadVitals_Alt(Requester : in UserID; TargetUser : in UserID)
+     --                      return BPM 
+   --with Post => ReadVitals_Alt'Result = (if Friends(TargetUser) = Requester then
+     --     Vitals(TargetUser)
+       --                                      else BPM'First);
+   
+   
+      function ReadVitals(Requester : in UserID; TargetUser : in UserID)
                            return BPM 
-   with Post => ReadVitals_Alt'Result = (if Friends(TargetUser) = Requester then
-          Vitals(TargetUser)
-                                             else BPM'First);
+     with 
+       Pre => (Users(Requester) = True and Requester /= Null_UserID and Requester /= EmergencyID ),
+       Post => (if (Insurers(TargetUser) = Requester and permiOfVitalsForInsurer(TargetUser) = True) or
+                   (Friends(TargetUser) = Requester and permiOfVitalsForFriend(TargetUser) = True) or
+                   (TargetUser = EmergencyID and permiOfVitalsForEmerg(TargetUser) = True)
+                   
+                  then
+                      ReadVitals'Result = Vitals(TargetUser)
+                      else
+                        ReadVitals'Result = Null_BPM);
+
    
-   --function Fact() return Boolean is 
-   --begin
-     -- return  (for all I in 1 .. LatestUser => Friends(I) /= Insurers(I);
-   
-   --end Fact;
+
    
  
--- function ReadFootsteps(Requester : in UserID; TargetUser : in UserID) 
---    return Footsteps;
+   --function ReadFootsteps(Requester : in UserID; TargetUser : in UserID) 
+     --                     return Footsteps;
+   
+   
+   
+   
 -- function ReadLocation(Requester : in UserID; TargetUser : in UserID)
 --    return GPSLocation;
 --        
@@ -185,16 +205,42 @@ is
 --  				     Other : in UserID;
 -- 				     Allow : in Boolean);
 --
--- procedure UpdateFootstepsPermissions(Wearer : in UserID; 
---  					Other : in UserID;
---  					Allow : in Boolean);
+   procedure UpdateFootstepsPermissions(Wearer : in UserID; 
+    					Other : in UserID;
+                                        Allow : in Boolean)
+            with 
+       Pre => (Users(Wearer) = True and Wearer /= Null_UserID and Wearer /= EmergencyID ),
+     Post => (if Insurers'Old(Wearer) = Other then
+                (if Allow = False then 
+                       Insurers(Wearer) = Null_UserID and 
+                     (permiOfStepsForInsurer = permiOfStepsForInsurer'Old'Update(Wearer => True)) and
+                     (permiOfVitalsForInsurer = permiOfVitalsForInsurer'Old'Update(Wearer => False)) and
+                     (permiOfLocasForInsurer = permiOfLocasForInsurer'Old'Update(Wearer => False))
+                      )
+                  else (if EmergencyID = Other then
+               permiOfStepsForEmerg = permiOfStepsForEmerg'Old'Update(Wearer => Allow)
+               
+               else (if Friends(Wearer) = Other then
+                      permiOfStepsForFriend = permiOfStepsForFriend'Old'Update(Wearer => Allow)
+               )));
+   
+   
 --     
 -- procedure UpdateLocationPermissions(Wearer : in UserID;
 -- 				       Other : in UserID;
 --  				       Allow : in Boolean);
 --
--- procedure ContactEmergency(Wearer : in UserID; 
---                            Location : in GPSLocation; 
---                            Vitals : in BPM);
+ procedure ContactEmergency(Wearer : in UserID; 
+                            Location : in GPSLocation; 
+                            Vital : in BPM)
+     with
+           Post => (if permiOfVitalsForEmerg(Wearer) = True then
+                    HistoryRecord = HistoryRecord'Old'Update(nextRecordIndex'Old => 
+                      HistoryRecord'Old(nextRecordIndex'Old)'Update(user => Wearer,
+                                                                      GeoLocation => Location,
+                                                                      HeartBeat => Vital)) and 
+                  nextRecordIndex = nextRecordIndex'Old +1
+                  else HistoryRecord = HistoryRecord'Old and 
+                    nextRecordIndex = nextRecordIndex'Old);
 
 end AccountManagementSystem;
