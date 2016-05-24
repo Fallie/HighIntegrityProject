@@ -9,7 +9,6 @@ with Measures; use Measures;
 package AccountManagementSystem
 with SPARK_Mode
 is
-  
    -- An array indicating whether a user ID is taken
    type UsersArray is array(UserID) of Boolean;
    
@@ -33,13 +32,12 @@ is
 
    type EmergencyArray is array (0 .. MAX_HISTORY) of EmergencyRecord;
 
-   -- kaiqi Array for the permissions 
-   type PermissionArray is array (UserID) of Boolean;
-   
    -- kaiqi to point to the nex avaliable Index for record
    nextRecordIndex : Integer := 0;
    HistoryRecord :EmergencyArray;
 
+   -- kaiqi Array for the permissions 
+   type PermissionArray is array (UserID) of Boolean;
    
    --kaiqi permission for insurer
    permiOfStepsForInsurer : PermissionArray;
@@ -65,7 +63,7 @@ is
    
    -- The list of users, and the latest user
    Users : UsersArray; 
-   LatestUser : UserID := UserID'First;
+   LatestUser : UserID := EmergencyID;
 
    -- Each users' insurer and friend
    Insurers : UserUserArray;
@@ -178,7 +176,7 @@ is
       function ReadVitals(Requester : in UserID; TargetUser : in UserID)
                            return BPM 
      with 
-       Pre => (Users(Requester) = True and Requester /= Null_UserID and Requester /= EmergencyID ),
+       Pre => (Users(Requester) = True and Requester /= Null_UserID and TargetUser /= EmergencyID ),
        Post => (if (Insurers(TargetUser) = Requester and permiOfVitalsForInsurer(TargetUser) = True) or
                    (Friends(TargetUser) = Requester and permiOfVitalsForFriend(TargetUser) = True) or
                    (TargetUser = EmergencyID and permiOfVitalsForEmerg(TargetUser) = True)

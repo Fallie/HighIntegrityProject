@@ -5,49 +5,109 @@ package body AccountManagementSystem
 is   
    procedure Init is
    begin
+      
       Users := (others => False);
-      Insurers := (others => UserID'First);
-      Friends := (others => UserID'First);
-      Vitals := (others => BPM'First);
-      MFootsteps := (others => Footsteps'First);
-      Locations := (others => (0.0, 0.0));
+      Insurers := (others => Null_UserID);
+      Friends := (others => Null_UserID);
+      Vitals := (others => Null_BPM );
+      MFootsteps := (others => Null_Footsteps);
+      Locations := (others => Null_Location);
+      permiOfStepsForInsurer := (others => True);
+      permiOfVitalsForInsurer := (others => False);
+      permiOfLocasForInsurer := (others => False);
+      
+      permiOfStepsForFriend := (others => False);
+      permiOfVitalsForFriend := (others => False);
+      permiOfLocasForFriend := (others => False);
+      
+      permiOfStepsForEmerg := (others => False);
+      permiOfVitalsForEmerg := (others => False);
+      permiOfLocasForEmerg := (others => False);
+      
    end Init;
 
    procedure CreateUser(NewUser : out UserID) is
    begin
-      LatestUser := LatestUser + 1;
-      Users(LatestUser) := True;
-      NewUser := LatestUser;
+      if(LatestUser>EmergencyID and LatestUser<UserID'Last)then 
+         LatestUser := LatestUser + 1;
+         Users(LatestUser) := True;
+         NewUser := LatestUser;
+      else
+         NewUser := Null_UserID;
+      end if;
+       
    end CreateUser;
    
    procedure SetInsurer(Wearer : in UserID; Insurer : in UserID) is
    begin
-      Insurers(Wearer) := Insurer;
+      if(Wearer in Users'Range and  Wearer /= Null_UserID and 
+           Wearer /= EmergencyID and Insurer /= EmergencyID and
+           Insurer in Users'Range and Insurer /= Null_UserID and
+           Users(Wearer) = True and Users(Insurer) = True  and
+           Wearer /= Insurer) then
+         Insurers(Wearer) := Insurer;
+      end if;
+      
    end SetInsurer;
      
    procedure RemoveInsurer(Wearer : in UserID) is
    begin
-      Insurers(Wearer) := UserID'First;
+      if (Wearer in Users'Range and  Wearer /= Null_UserID and 
+           Wearer /= EmergencyID and Users(Wearer) = true
+          and Insurers(Wearer) in Users'Range 
+          and Users(ReadInsurer(Wearer)) = true) then
+         permiOfStepsForInsurer := (Insurers(Wearer) => True);
+         permiOfVitalsForInsurer := (Insurers(Wearer) => False);
+         permiOfLocasForInsurer := (Insurers(Wearer) => False);
+         Insurers(Wearer) := Null_UserID;
+      end if;
    end RemoveInsurer;
 
    procedure SetFriend(Wearer : in UserID; Friend : in UserID) is
    begin
-      Friends(Wearer) := Friend;
+      if(Wearer in Users'Range and  Wearer /= Null_UserID and 
+           Wearer /= EmergencyID and Friend /= EmergencyID 
+           and Friend in Users'Range and Friend /= Null_UserID and
+           Users(Wearer) = True and Users(Friend) = True  and
+           Wearer /= Friend) then
+         Friends(Wearer) := Friend;
+      end if;
    end SetFriend;
      
    procedure RemoveFriend(Wearer : in UserID) is
    begin
-      Friends(Wearer) := UserID'First;
+      if (Wearer in Users'Range and  Wearer /= Null_UserID and 
+           Wearer /= EmergencyID and Users(Wearer) = true 
+          and Friends(Wearer) in Users'Range 
+          and Users(ReadFriend(Wearer)) = true) then
+         permiOfStepsForFriend := (others => False);
+         permiOfVitalsForFriend := (others => False);
+         permiOfLocasForFriend := (others => False);
+         Friends(Wearer) := Null_UserID;
+      end if;
    end RemoveFriend;
 
    function ReadVitals(Requester : in UserID; TargetUser : in UserID)
                            return BPM 
    is
    begin
-      if Friends(TargetUser) = Requester then
-         return Vitals(TargetUser);
+      if (Requester in Users'Range and TargetUser in Users'Range and
+            Users(Requester) = True and Users(TargetUser) = True 
+          and Requester /= Null_UserID and TargetUser /= EmergencyID
+          and TargetUser not in Insurers'First..Insurers'Last) then
+         if ((Friends(TargetUser) = Requester and 
+               permiOfVitalsForFriend(TargetUser) = True) or 
+            (Insurers(TargetUser) = Requester and 
+                 permiOfVitalsForInsurer(TargetUser) = True) or
+            (Requester = EmergencyID and 
+                 permiOfVitalsForEmerg(TargetUser) = True))
+         then 
+            return Vitals(TargetUser);
+         else return Null_BPM;
+         end if;
+         
       else 
-         return BPM'First;
+         return Null_BPM;
       end if;
    end ReadVitals;
    
