@@ -57,9 +57,12 @@ is
            Wearer /= EmergencyID and Users(Wearer) = true
           and Insurers(Wearer) in Users'Range 
           and Users(ReadInsurer(Wearer)) = true) then
-         permiOfStepsForInsurer := (Insurers(Wearer) => True);
-         permiOfVitalsForInsurer := (Insurers(Wearer) => False);
-         permiOfLocasForInsurer := (Insurers(Wearer) => False);
+         permiOfStepsForInsurer(Wearer) := True;
+         permiOfVitalsForInsurer(Wearer):= False;
+         permiOfLocasForInsurer(Wearer):= False;
+       --permiOfStepsForInsurer := (Insurers(Wearer) => True);
+       --permiOfVitalsForInsurer := (Insurers(Wearer) => False);
+       --permiOfLocasForInsurer := (Insurers(Wearer) => False);
          Insurers(Wearer) := Null_UserID;
       end if;
    end RemoveInsurer;
@@ -81,9 +84,12 @@ is
            Wearer /= EmergencyID and Users(Wearer) = true 
           and Friends(Wearer) in Users'Range 
           and Users(ReadFriend(Wearer)) = true) then
-         permiOfStepsForFriend := (others => False);
-         permiOfVitalsForFriend := (others => False);
-         permiOfLocasForFriend := (others => False);
+         permiOfStepsForFriend(Wearer) := False;
+         permiOfVitalsForFriend(Wearer) := False;
+         permiOfLocasForFriend(Wearer) := False;
+         --permiOfStepsForFriend := (Friends(Wearer) => False);
+         --permiOfVitalsForFriend := (Friends(Wearer) => False);
+         --permiOfLocasForFriend := (Friends(Wearer) => False);
          Friends(Wearer) := Null_UserID;
       end if;
    end RemoveFriend;
@@ -149,8 +155,8 @@ is
   					Other : in UserID;
   					Allow : in Boolean) is
    begin
-      if(Users(Wearer) = True and Wearer /= Null_UserID and 
-            Wearer /= EmergencyID) then 
+      if(Wearer in Users'Range and Users(Wearer) = True and
+           Wearer /= Null_UserID and Wearer /= EmergencyID) then 
         if(Other = Friends(Wearer) or Other = EmergencyID) then
             permiOfStepsForFriend(Wearer) := Allow;
           elsif (Other = Insurers(Wearer)) then
@@ -171,10 +177,11 @@ is
                               Vital : in BPM) is
       thisRecord : EmergencyRecord;
    begin
-      if(Users(Wearer) = True and Wearer /= Null_UserID and 
-           Wearer /= EmergencyID and Vital /= Null_BPM and
+      if(Wearer in Users'Range and Users(Wearer) = True and 
+           Wearer /= Null_UserID and Wearer /= EmergencyID and 
+             Vital /= Null_BPM and
              Location /= Null_Location and permiOfVitalsForEmerg(Wearer)= True
-         and nextRecordIndex < MAX_HISTORY) then 
+         and nextRecordIndex <= MAX_HISTORY and nextRecordIndex >= 0) then 
          thisRecord.user := Wearer;
          thisRecord.GeoLocation := Location;
          thisRecord.HeartBeat := Vital;
