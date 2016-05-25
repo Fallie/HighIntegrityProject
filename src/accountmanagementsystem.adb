@@ -100,8 +100,7 @@ is
             (Insurers(TargetUser) = Requester and 
                  permiOfVitalsForInsurer(TargetUser) = True) or
             (Requester = EmergencyID and 
-                 permiOfVitalsForEmerg(TargetUser) = True))
-         then 
+               permiOfVitalsForEmerg(TargetUser) = True)) then 
             return Vitals(TargetUser);
          else return Null_BPM;
          end if;
@@ -113,17 +112,28 @@ is
    
    procedure UpdateVitals(Wearer : in UserID; NewVitals : in BPM) is 
    begin
-      Vitals(Wearer) := NewVitals;
+      if(Wearer in Users'Range and  Wearer /= Null_UserID and 
+           Wearer /= EmergencyID and Users(Wearer) = True ) then
+         Vitals(Wearer) := NewVitals;
+      end if;
    end UpdateVitals;
      
    procedure UpdateFootsteps(Wearer : in UserID; NewFootsteps : in Footsteps) is
    begin
-      MFootsteps(Wearer) := NewFootsteps;
+      if(Wearer in Users'Range and  Wearer /= Null_UserID and 
+           Wearer /= EmergencyID and Users(Wearer) = True ) then
+         MFootsteps(Wearer) := NewFootsteps;
+      end if;
+      
    end UpdateFootsteps;
      
    procedure UpdateLocation(Wearer : in UserID; NewLocation : in GPSLocation) is
    begin
-      Locations(Wearer) := NewLocation;
+      if(Wearer in Users'Range and  Wearer /= Null_UserID and 
+           Wearer /= EmergencyID and Users(Wearer) = True ) then
+         Locations(Wearer) := NewLocation;
+      end if;  
+      
    end UpdateLocation;
    
    
@@ -138,7 +148,15 @@ is
   					Other : in UserID;
   					Allow : in Boolean) is
    begin
-      permiOfStepsForFriend(Wearer) := Allow;
+      if(Users(Wearer) = True and Wearer /= Null_UserID and 
+            Wearer /= EmergencyID) then 
+        if(Other = Friends(Wearer) or Other = EmergencyID) then
+            permiOfStepsForFriend(Wearer) := Allow;
+          elsif (Other = Insurers(Wearer)) then
+           permiOfStepsForFriend(Wearer) := True;
+          end if;
+      end if;
+         
      end UpdateFootstepsPermissions;
 --     
 --     procedure UpdateLocationPermissions(Wearer : in UserID;
