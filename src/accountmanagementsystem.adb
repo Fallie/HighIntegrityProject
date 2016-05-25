@@ -24,6 +24,7 @@ is
       permiOfVitalsForEmerg := (others => False);
       permiOfLocasForEmerg := (others => False);
       
+      
    end Init;
 
    procedure CreateUser(NewUser : out UserID) is
@@ -168,8 +169,19 @@ is
    procedure ContactEmergency(Wearer : in UserID; 
                               Location : in GPSLocation; 
                               Vital : in BPM) is
+      thisRecord : EmergencyRecord;
    begin
-      Vitals(Wearer) := Vital;
+      if(Users(Wearer) = True and Wearer /= Null_UserID and 
+           Wearer /= EmergencyID and Vital /= Null_BPM and
+             Location /= Null_Location and permiOfVitalsForEmerg(Wearer)= True
+         and nextRecordIndex < MAX_HISTORY) then 
+         thisRecord.user := Wearer;
+         thisRecord.GeoLocation := Location;
+         thisRecord.HeartBeat := Vital;
+         HistoryRecord(nextRecordIndex):= thisRecord;
+         nextRecordIndex := nextRecordIndex + 1;
+      end if;
+      
    end ContactEmergency;
     
 end AccountManagementSystem;
