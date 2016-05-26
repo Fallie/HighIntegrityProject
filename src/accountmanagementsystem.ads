@@ -1,11 +1,10 @@
 with Measures; use Measures;
 
--- NOTE: This package exposes the types and variables of the package.
--- This makes the assignment a bit simpler, but is generally not
--- considered good style.
--- For an example that hides these while maintaining abstraction and
--- elegence, see the example at
--- {SPARK_2014_HOME}/share/examples/spark/natural/natural_set.ads
+-- This package exposes the types and variables of the package. 
+-- The SPARK preconditions and postconditions are implemented here.
+-- The SPARK contracts are implemented based on the Alloy specification from
+-- assignment 3 of our group. All global variables are declared in this package.
+
 package AccountManagementSystem
 with SPARK_Mode
 is
@@ -20,9 +19,11 @@ is
    type FootstepsArray is array(UserID) of Footsteps;
    type LocationsArray is array(UserID) of GPSLocation;
    
-   -- kaiqi Arrays for the historic record
+   -- The maximum number of emergency record that can be stored.
    MAX_HISTORY : constant Integer := 200;
    
+   -- A record consists of userID, GPSLocation and BPM 
+   -- of the wearer in an emergency event. 
    type EmergencyRecord is
       record
          user :UserID;
@@ -30,39 +31,46 @@ is
          HeartBeat :BPM;
       end record;
 
+   -- The array for storing all emergency record.
    type EmergencyArray is array (0 .. MAX_HISTORY) of EmergencyRecord;
 
-   -- kaiqi to point to the nex avaliable Index for record
+   -- Pointers to the next avaliable index for emergency record.
    nextRecordIndex : Integer := 0;
+   
+   -- The emergency record list.
    HistoryRecord :EmergencyArray;
-   Null_Record : EmergencyRecord;
- 
-   -- kaiqi Array for the permissions 
+   
+   -- Array for the permissions 
    type PermissionArray is array (UserID) of Boolean;
    
-   --kaiqi permission for insurer
+   -- Permission for insurer
    permiOfStepsForInsurer : PermissionArray;
    permiOfVitalsForInsurer : PermissionArray;
    permiOfLocasForInsurer : PermissionArray;
 	
-   --kaiqi permissons for friends
+   -- Permissons for friends
    permiOfStepsForFriend : PermissionArray;
    permiOfVitalsForFriend : PermissionArray;
    permiOfLocasForFriend : PermissionArray;
 	
-   --kaiqi permissons for emergency
+   -- Permissons for emergency
    permiOfStepsForEmerg : PermissionArray;
    permiOfVitalsForEmerg : PermissionArray;
    permiOfLocasForEmerg : PermissionArray;
    
-   --kaiqi the constants needed
+   -- Constants needed to present the null value of the userID, Footsteps,
+   -- BPM, Location and emergency record.
    Null_UserID : constant UserID := -1;
    Null_Footsteps : constant Footsteps := 0;
    Null_BPM : constant BPM := -1;
    Null_Location : constant GPSLocation := (0.0,0.0);
+   Null_Record : EmergencyRecord;
+   
+   -- The constant emergency with the userID to be zero.
    EmergencyID: constant UserID := 0;
    
-   -- The list of users, and the latest user
+ 
+   -- The list of users, and the latest userID.
    Users : UsersArray; 
    LatestUser : UserID := EmergencyID;
 
@@ -78,7 +86,7 @@ is
    -- Create and initialise the account management system
    procedure Init with 
      Post => (for all I in Users'Range => Users(I) = False) and
-
+     (for all I in Insurers'Range => Insurers(I) = Null_UserID) and
      (for all I in Friends'Range => Friends(I) = Null_UserID) and
      (for all I in Vitals'Range => Vitals(I) = Null_BPM) and
      (for all I in MFootsteps'Range => MFootsteps(I) = Null_Footsteps) and
@@ -104,9 +112,9 @@ is
    procedure CreateUser(NewUser : out UserID) with
      
      Pre => (LatestUser < UserID'Last),
-     Post => (if(LatestUser'Old > EmergencyID and LatestUser'Old < UserID'Last) then
-       (Users = Users'Old'Update(NewUser => True)  and LatestUser = LatestUser'Old +1 )  
-             else (NewUser = Null_UserID));
+     Post => (if(LatestUser'Old >= EmergencyID and LatestUser'Old < UserID'Last) then
+                  (Users = Users'Old'Update(NewUser => True) and LatestUser = LatestUser'Old +1 )  
+                    else (NewUser = Null_UserID));
    
    procedure SetInsurer(Wearer : in UserID; Insurer : in UserID) with
 
@@ -117,10 +125,10 @@ is
      Wearer /= Insurer,
      
      Post => (if(Insurers'Old(Wearer) /= Insurer ) then
-     (Insurers = Insurers'Old'Update(Wearer => Insurer)) and 
-     (permiOfStepsForInsurer = permiOfStepsForInsurer'Old'Update(Wearer => True)) and
-     (permiOfVitalsForInsurer = permiOfVitalsForInsurer'Old'Update(Wearer => False)) and
-     (permiOfLocasForInsurer = permiOfLocasForInsurer'Old'Update(Wearer => False)));
+                (Insurers = Insurers'Old'Update(Wearer => Insurer)) and 
+                  (permiOfStepsForInsurer = permiOfStepsForInsurer'Old'Update(Wearer => True)) and
+                (permiOfVitalsForInsurer = permiOfVitalsForInsurer'Old'Update(Wearer => False)) and
+                  (permiOfLocasForInsurer = permiOfLocasForInsurer'Old'Update(Wearer => False)));
               
    function ReadInsurer(Wearer : in UserID) return UserID 
    is (Insurers(Wearer));
@@ -129,22 +137,22 @@ is
      Pre =>  Wearer in Users'Range and Users(Wearer) = True and (Wearer /= Null_UserID) and Wearer /= EmergencyID ,
      
      Post => (if (Insurers(Wearer) /= Null_UserID) then
-       (Insurers = Insurers'Old'Update(Wearer => Null_UserID)) and
-     (permiOfStepsForInsurer = permiOfStepsForInsurer'Old'Update(Wearer => True)) and
-     (permiOfVitalsForInsurer = permiOfVitalsForInsurer'Old'Update(Wearer => False)) and
-     (permiOfLocasForInsurer = permiOfLocasForInsurer'Old'Update(Wearer => False)));
+                (Insurers = Insurers'Old'Update(Wearer => Null_UserID)) and
+                  (permiOfStepsForInsurer = permiOfStepsForInsurer'Old'Update(Wearer => True)) and
+                (permiOfVitalsForInsurer = permiOfVitalsForInsurer'Old'Update(Wearer => False)) and
+                  (permiOfLocasForInsurer = permiOfLocasForInsurer'Old'Update(Wearer => False)));
 
    procedure SetFriend(Wearer : in UserID; Friend : in UserID) with
      Pre =>(Wearer in Users'Range and  Wearer /= Null_UserID and 
-           Wearer /= EmergencyID and Friend /= EmergencyID 
-           and Friend in Users'Range and Friend /= Null_UserID and
-           Users(Wearer) = True and Users(Friend) = True  and
-           Wearer /= Friend),
+              Wearer /= EmergencyID and Friend /= EmergencyID 
+            and Friend in Users'Range and Friend /= Null_UserID and
+              Users(Wearer) = True and Users(Friend) = True  and
+                Wearer /= Friend),
        Post => (if Friends(Wearer) /= Friend then
-         Friends = Friends'Old'Update(Wearer => Friend) and
-     (permiOfStepsForFriend = permiOfStepsForFriend'Old'Update(Wearer => False)) and
-     (permiOfVitalsForFriend = permiOfVitalsForFriend'Old'Update(Wearer => False)) and
-     (permiOfLocasForFriend = permiOfLocasForFriend'Old'Update(Wearer => False))) ;
+                      Friends = Friends'Old'Update(Wearer => Friend) and
+                  (permiOfStepsForFriend = permiOfStepsForFriend'Old'Update(Wearer => False)) and
+                    (permiOfVitalsForFriend = permiOfVitalsForFriend'Old'Update(Wearer => False)) and
+                  (permiOfLocasForFriend = permiOfLocasForFriend'Old'Update(Wearer => False))) ;
               
    function ReadFriend(Wearer : in UserID) return UserID
    is (Friends(Wearer));
@@ -153,27 +161,27 @@ is
      Pre =>  (Wearer in Users'Range and Users(Wearer) = True) and (Wearer /= Null_UserID) and Wearer /= EmergencyID ,
      
      Post => (if (Friends(Wearer) /= Null_UserID) then
-       (Friends = Friends'Old'Update(Wearer => Null_UserID)) and
-     (permiOfStepsForFriend = permiOfStepsForFriend'Old'Update(Wearer => False)) and
-     (permiOfVitalsForFriend = permiOfVitalsForFriend'Old'Update(Wearer => False)) and
-     (permiOfLocasForFriend = permiOfLocasForFriend'Old'Update(Wearer => False)));
+                (Friends = Friends'Old'Update(Wearer => Null_UserID)) and
+                  (permiOfStepsForFriend = permiOfStepsForFriend'Old'Update(Wearer => False)) and
+                (permiOfVitalsForFriend = permiOfVitalsForFriend'Old'Update(Wearer => False)) and
+                  (permiOfLocasForFriend = permiOfLocasForFriend'Old'Update(Wearer => False)));
 
 
    procedure UpdateVitals(Wearer : in UserID; NewVitals : in BPM) with
      Pre => Wearer in Users'Range and Users(Wearer) = True and (Wearer /= Null_UserID) and Wearer /= EmergencyID 
-            and NewVitals /= Null_BPM,
+     and NewVitals /= Null_BPM,
      Post => Vitals = Vitals'Old'Update(Wearer => NewVitals);
    
    procedure UpdateFootsteps(Wearer : in UserID; NewFootsteps : in Footsteps)
      with
-     Pre => Wearer in Users'Range and Users(Wearer) = True and (Wearer /= Null_UserID) and Wearer /= EmergencyID 
-            and NewFootsteps /= Null_Footsteps,
+       Pre => Wearer in Users'Range and Users(Wearer) = True and (Wearer /= Null_UserID) and Wearer /= EmergencyID 
+     and NewFootsteps /= Null_Footsteps,
      Post => MFootsteps = MFootsteps'Old'Update(Wearer => NewFootsteps);
      
    procedure UpdateLocation(Wearer : in UserID; NewLocation : in GPSLocation) 
      with
-     Pre => Wearer in Users'Range and Users(Wearer) = True and (Wearer /= Null_UserID) and Wearer /= EmergencyID 
-            and NewLocation /= Null_Location,
+       Pre => Wearer in Users'Range and Users(Wearer) = True and (Wearer /= Null_UserID) and Wearer /= EmergencyID 
+     and NewLocation /= Null_Location,
      Post => Locations = Locations'Old'Update(Wearer => NewLocation);
      
    -- An partial, incorrect specification.
@@ -190,28 +198,29 @@ is
    -- bodies, and are better suited to functions with non-trivial control flow,
    -- and are required for functions with preconditions
    --function ReadVitals_Alt(Requester : in UserID; TargetUser : in UserID)
-     --                      return BPM 
+   --                      return BPM 
    --with Post => ReadVitals_Alt'Result = (if Friends(TargetUser) = Requester then
-     --     Vitals(TargetUser)
-       --                                      else BPM'First);
+   --     Vitals(TargetUser)
+   --                                      else BPM'First);
    
    
-     function ReadVitals(Requester : in UserID; TargetUser : in UserID)
-                           return BPM 
+   function ReadVitals(Requester : in UserID; TargetUser : in UserID)
+                         return BPM 
      with 
        Pre => (Users(Requester) = True and Requester /= Null_UserID and TargetUser /= EmergencyID and 
-               Requester in Users'Range and (Users(Requester) = True or Requester = EmergencyID) and (Requester /= Null_UserID) and 
-                     TargetUser in Users'Range and Users(TargetUser) = True and TargetUser /= Null_UserID and TargetUser /= EmergencyID ),
+                     Requester in Users'Range and (Users(Requester) = True or Requester = EmergencyID) and (Requester /= Null_UserID) and 
+                     TargetUser in Users'Range and Users(TargetUser) = True and TargetUser /= Null_UserID and TargetUser /= EmergencyID 
+               and TargetUser not in Insurers'First..Insurers'Last),
          
-       Post => (if (Insurers(TargetUser) = Requester and permiOfVitalsForInsurer(TargetUser) = True) or
-                   (Friends(TargetUser) = Requester and permiOfVitalsForFriend(TargetUser) = True) or
-                    (TargetUser = EmergencyID and permiOfVitalsForEmerg(TargetUser) = True) or 
-                      (Requester = TargetUser)
+     Post => (if (Insurers(TargetUser) = Requester and permiOfVitalsForInsurer(TargetUser) = True) or
+                (Friends(TargetUser) = Requester and permiOfVitalsForFriend(TargetUser) = True) or
+                  (TargetUser = EmergencyID and permiOfVitalsForEmerg(TargetUser) = True) or 
+                (Requester = TargetUser)
                    
                   then
-                      ReadVitals'Result = Vitals(TargetUser)
-                      else
-                        ReadVitals'Result = Null_BPM);
+                    ReadVitals'Result = Vitals(TargetUser)
+                  else
+                    ReadVitals'Result = Null_BPM);
 
    
 
@@ -221,16 +230,16 @@ is
                           return Footsteps     
      with 
        Pre => (Users(Requester) = True and Requester /= Null_UserID and TargetUser /= EmergencyID and 
-               Requester in Users'Range and (Users(Requester) = True or Requester = EmergencyID) and (Requester /= Null_UserID) and 
+                     Requester in Users'Range and (Users(Requester) = True or Requester = EmergencyID) and (Requester /= Null_UserID) and 
                      TargetUser in Users'Range and Users(TargetUser) = True and TargetUser /= Null_UserID and TargetUser /= EmergencyID ),
          
        Post => (if (Insurers(TargetUser) = Requester ) or
-                   (Friends(TargetUser) = Requester and permiOfStepsForFriend(TargetUser) = True) or
-                   (TargetUser = EmergencyID and permiOfStepsForEmerg(TargetUser) = True) or 
-                      (Requester = TargetUser)
+                  (Friends(TargetUser) = Requester and permiOfStepsForFriend(TargetUser) = True) or
+                    (Requester = EmergencyID and permiOfStepsForEmerg(TargetUser) = True) or 
+                  (Requester = TargetUser)
                    
-                  then
-                      ReadFootsteps'Result = MFootsteps(TargetUser)
+                      then
+                        ReadFootsteps'Result = MFootsteps(TargetUser)
                       else
                         ReadFootsteps'Result = Null_Footsteps);
    
@@ -241,87 +250,88 @@ is
                          return GPSLocation
      with
        Pre => (Users(Requester) = True and Requester /= Null_UserID and TargetUser /= EmergencyID and 
-               Requester in Users'Range and (Users(Requester) = True or Requester = EmergencyID) and (Requester /= Null_UserID) and 
-               TargetUser in Users'Range and Users(TargetUser) = True and TargetUser /= Null_UserID and TargetUser /= EmergencyID ),
+                     Requester in Users'Range and (Users(Requester) = True or Requester = EmergencyID) and (Requester /= Null_UserID) and 
+                     TargetUser in Users'Range and Users(TargetUser) = True and TargetUser /= Null_UserID and TargetUser /= EmergencyID ),
        Post => (if (Insurers(TargetUser) = Requester and permiOfLocasForInsurer(TargetUser) = True) or
-                   (Friends(TargetUser) = Requester and permiOfLocasForFriend(TargetUser) = True) or
-                   (TargetUser = EmergencyID and permiOfLocasForEmerg(TargetUser) = True) or 
-                      (Requester = TargetUser)
+                  (Friends(TargetUser) = Requester and permiOfLocasForFriend(TargetUser) = True) or
+                    (Requester = EmergencyID and permiOfLocasForEmerg(TargetUser) = True) or 
+                  (Requester = TargetUser)
                    
-                  then
-                      ReadLocation'Result = Locations(TargetUser)
+                      then
+                        ReadLocation'Result = Locations(TargetUser)
                       else
                         ReadLocation'Result = Null_Location);
    
---
+   --
    procedure UpdateFootstepsPermissions(Wearer : in UserID; 
-    					Other : in UserID;
+                                        Other : in UserID;
                                         Allow : in Boolean)
-            with 
-              Pre =>(Wearer in Users'Range and  Wearer /= Null_UserID and 
-           Wearer /= EmergencyID
-           and Other in Users'Range and Other /= Null_UserID and
-           Users(Wearer) = True and Users(Other) = True  and
-           Wearer /= Other),
+     with 
+       Pre =>(Wearer in Users'Range and  Wearer /= Null_UserID and 
+                Wearer /= EmergencyID
+              and Other in Users'Range and Other /= Null_UserID and
+                Users(Wearer) = True and Users(Other) = True  and
+                    Wearer /= Other),
          
-           Post => (if Insurers'Old(Wearer) = Other then
-                        (if Allow = False then 
-                        Insurers(Wearer) = Null_UserID and 
-                        permiOfStepsForInsurer = permiOfStepsForInsurer'Old'Update(Wearer => True) and
-                        permiOfVitalsForInsurer = permiOfVitalsForInsurer'Old'Update(Wearer => False) and
-                        permiOfLocasForInsurer = permiOfLocasForInsurer'Old'Update(Wearer => False)))
-            and (if EmergencyID = Other then
+         Post => (if Insurers'Old(Wearer) = Other then
+                    (if Allow = False then 
+                             Insurers(Wearer) = Null_UserID and 
+                         permiOfStepsForInsurer = permiOfStepsForInsurer'Old'Update(Wearer => True) and
+                         permiOfVitalsForInsurer = permiOfVitalsForInsurer'Old'Update(Wearer => False) and
+                         permiOfLocasForInsurer = permiOfLocasForInsurer'Old'Update(Wearer => False)))
+     and (if EmergencyID = Other then
             permiOfStepsForEmerg = permiOfStepsForEmerg'Old'Update(Wearer => Allow))
-            and (if Friends(Wearer) = Other then
-            permiOfStepsForFriend = permiOfStepsForFriend'Old'Update(Wearer => Allow));
+     and (if Friends(Wearer) = Other then
+              permiOfStepsForFriend = permiOfStepsForFriend'Old'Update(Wearer => Allow));
        
    procedure UpdateVitalsPermissions(Wearer : in UserID; 
-    				     Other : in UserID;
+                                     Other : in UserID;
                                      Allow : in Boolean)
-           with 
-           Pre =>(Wearer in Users'Range and  Wearer /= Null_UserID and 
-           Wearer /= EmergencyID
-           and Other in Users'Range and Other /= Null_UserID and
-           Users(Wearer) = True and Users(Other) = True  and
-           Wearer /= Other),
+     with 
+       Pre =>(Wearer in Users'Range and  Wearer /= Null_UserID and 
+                Wearer /= EmergencyID
+              and Other in Users'Range and Other /= Null_UserID and
+                Users(Wearer) = True and Users(Other) = True  and
+                    Wearer /= Other),
          
-           Post => (if Insurers'Old(Wearer) = Other then
-           permiOfVitalsForInsurer = permiOfVitalsForInsurer'Old'Update(Wearer => Allow))
-           and (if EmergencyID = Other then
-           permiOfVitalsForEmerg = permiOfVitalsForEmerg'Old'Update(Wearer => Allow))
-           and (if Friends(Wearer) = Other then
-           permiOfVitalsForFriend = permiOfVitalsForFriend'Old'Update(Wearer => Allow));
+         Post => (if Insurers'Old(Wearer) = Other then
+                          permiOfVitalsForInsurer = permiOfVitalsForInsurer'Old'Update(Wearer => Allow))
+         and (if EmergencyID = Other then
+                permiOfVitalsForEmerg = permiOfVitalsForEmerg'Old'Update(Wearer => Allow))
+         and (if Friends(Wearer) = Other then
+                      permiOfVitalsForFriend = permiOfVitalsForFriend'Old'Update(Wearer => Allow));
 
    
      
    procedure UpdateLocationPermissions(Wearer : in UserID;
- 		  		       Other : in UserID;
+                                       Other : in UserID;
                                        Allow : in Boolean)
-                 with 
-           Pre =>(Wearer in Users'Range and  Wearer /= Null_UserID and 
-           Wearer /= EmergencyID
-           and Other in Users'Range and Other /= Null_UserID and
-           Users(Wearer) = True and Users(Other) = True  and
-           Wearer /= Other),
+     with 
+       Pre =>(Wearer in Users'Range and  Wearer /= Null_UserID and 
+                Wearer /= EmergencyID
+              and Other in Users'Range and Other /= Null_UserID and
+                Users(Wearer) = True and Users(Other) = True  and
+                    Wearer /= Other),
          
-           Post => (if Insurers'Old(Wearer) = Other then
-           permiOfLocasForInsurer = permiOfLocasForInsurer'Old'Update(Wearer => Allow))
-           and (if EmergencyID = Other then
-           permiOfLocasForEmerg = permiOfLocasForEmerg'Old'Update(Wearer => Allow))
-           and (if Friends(Wearer) = Other then
-           permiOfLocasForFriend = permiOfLocasForFriend'Old'Update(Wearer => Allow));
+         Post => (if Insurers'Old(Wearer) = Other then
+                          permiOfLocasForInsurer = permiOfLocasForInsurer'Old'Update(Wearer => Allow))
+         and (if EmergencyID = Other then
+                permiOfLocasForEmerg = permiOfLocasForEmerg'Old'Update(Wearer => Allow))
+         and (if Friends(Wearer) = Other then
+                      permiOfLocasForFriend = permiOfLocasForFriend'Old'Update(Wearer => Allow));
 
- procedure ContactEmergency(Wearer : in UserID; 
-                            Location : in GPSLocation; 
-                            Vital : in BPM)
+   procedure ContactEmergency(Wearer : in UserID; 
+                              Location : in GPSLocation; 
+                              Vital : in BPM)
      with
-           Pre => Wearer in Users'Range and  Wearer /= Null_UserID and 
-           Wearer /= EmergencyID and 
-           Users(Wearer) = True and Location /= Null_Location and Vital /= Null_BPM ,
+       Pre => Wearer in Users'Range and  Wearer /= Null_UserID and 
+     Wearer /= EmergencyID and 
+     Users(Wearer) = True and Location /= Null_Location and Vital /= Null_BPM 
+     and nextRecordIndex <= MAX_HISTORY and nextRecordIndex >= 0,
 
-           Post => (if permiOfVitalsForEmerg(Wearer) = True then
-                    HistoryRecord = HistoryRecord'Old'Update(nextRecordIndex'Old => (Wearer,Location,Vital)) and 
-                  nextRecordIndex = nextRecordIndex'Old +1
+     Post => (if permiOfVitalsForEmerg(Wearer) = True then
+                  HistoryRecord = HistoryRecord'Old'Update(nextRecordIndex'Old => (Wearer,Location,Vital)) and 
+                nextRecordIndex = nextRecordIndex'Old +1
                   else HistoryRecord = HistoryRecord'Old and 
                     nextRecordIndex = nextRecordIndex'Old);
 
