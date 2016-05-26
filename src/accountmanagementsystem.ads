@@ -110,7 +110,7 @@ is
      (nextRecordIndex = 0);
      
    procedure CreateUser(NewUser : out UserID) with
-     
+     Global => ( In_Out => (LatestUser,Users)),
      Pre => (LatestUser < UserID'Last),
      Post => (if(LatestUser'Old >= EmergencyID and LatestUser'Old < UserID'Last) then
                   (Users = Users'Old'Update(NewUser => True) and LatestUser = LatestUser'Old +1 )  
