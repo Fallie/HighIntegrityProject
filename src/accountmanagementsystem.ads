@@ -77,10 +77,10 @@ is
    -- Create and initialise the account management system
    procedure Init with 
      Post => (for all I in Users'Range => Users(I) = False) and
-     (for all I in Friends'Range => Friends(I) = UserID'First) and
-     (for all I in Vitals'Range => Vitals(I) = BPM'First) and
-     (for all I in MFootsteps'Range => MFootsteps(I) = Footsteps'First) and
-     (for all I in Locations'Range => Locations(I) = (0.0, 0.0)) and
+     (for all I in Friends'Range => Friends(I) = Null_UserID) and
+     (for all I in Vitals'Range => Vitals(I) = Null_BPM) and
+     (for all I in MFootsteps'Range => MFootsteps(I) = Null_Footsteps) and
+     (for all I in Locations'Range => Locations(I) = Null_Location) and
      
      (for all I in permiOfStepsForInsurer'Range => permiOfStepsForInsurer(I) = True) and
      (for all I in permiOfVitalsForInsurer'Range => permiOfVitalsForInsurer(I) = False) and
@@ -102,11 +102,13 @@ is
    procedure CreateUser(NewUser : out UserID) with
      
      Pre => (LatestUser < UserID'Last),
-     Post => (Users = Users'Old'Update(NewUser => True)) and
+     Post => (if(LatestUser'Old>EmergencyID and LatestUser'Old<UserID'Last) then
+       (Users = Users'Old'Update(NewUser => True)) and
      (permiOfLocasForEmerg = permiOfLocasForEmerg'Old'Update(NewUser => False)) and
      (permiOfVitalsForEmerg = permiOfVitalsForEmerg'Old'Update(NewUser => False)) and
-     (permiOfStepsForEmerg = permiOfStepsForEmerg'Old'Update(NewUser => False)) and
-     (Users'Old(NewUser) = False);
+                (permiOfStepsForEmerg = permiOfStepsForEmerg'Old'Update(NewUser => False))
+             else (NewUser = Null_UserID)
+             );
    
    procedure SetInsurer(Wearer : in UserID; Insurer : in UserID) with
 
@@ -129,7 +131,11 @@ is
      (permiOfLocasForInsurer = permiOfLocasForInsurer'Old'Update(Wearer => False));
 
    procedure SetFriend(Wearer : in UserID; Friend : in UserID) with
-     Pre => Wearer in Users'Range and Friend in Users'Range,
+     Pre =>(Wearer in Users'Range and  Wearer /= Null_UserID and 
+           Wearer /= EmergencyID and Friend /= EmergencyID 
+           and Friend in Users'Range and Friend /= Null_UserID and
+           Users(Wearer) = True and Users(Friend) = True  and
+           Wearer /= Friend),
      Post => Friends = Friends'Old'Update(Wearer => Friend);
               
    function ReadFriend(Wearer : in UserID) return UserID
@@ -141,7 +147,10 @@ is
 
    procedure UpdateVitals(Wearer : in UserID; NewVitals : in BPM) with
      Pre => Wearer in Users'Range and  (Users(Wearer) = True) and (Wearer /= Null_UserID),
-     Post => Vitals = Vitals'Old'Update(Wearer => NewVitals);
+     Post => 
+             (if(Wearer in Users'Range and  Wearer /= Null_UserID and 
+           Wearer /= EmergencyID and Users(Wearer) = True ) then
+       Vitals = Vitals'Old'Update(Wearer => NewVitals));
    
    procedure UpdateFootsteps(Wearer : in UserID; NewFootsteps : in Footsteps)
      with

@@ -33,6 +33,9 @@ is
          LatestUser := LatestUser + 1;
          Users(LatestUser) := True;
          NewUser := LatestUser;
+         permiOfStepsForEmerg(LatestUser) := False;
+         permiOfVitalsForEmerg(LatestUser) := False;
+         permiOfLocasForEmerg(LatestUser) := False;
       else
          NewUser := Null_UserID;
       end if;
