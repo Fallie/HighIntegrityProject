@@ -24,18 +24,19 @@ is
       permiOfVitalsForEmerg := (others => False);
       permiOfLocasForEmerg := (others => False);
       
+      Null_Record.user := Null_UserID;
+      Null_Record.GeoLocation := Null_Location;
+      Null_Record.HeartBeat := Null_BPM;
+      HistoryRecord := (others => Null_Record);
       
    end Init;
 
    procedure CreateUser(NewUser : out UserID) is
    begin
-      if(LatestUser>EmergencyID and LatestUser<UserID'Last)then 
-         LatestUser := LatestUser + 1;
+      if(LatestUser>=EmergencyID and LatestUser<UserID'Last)then 
+         LatestUser := LatestUser + UserID(1);
          Users(LatestUser) := True;
          NewUser := LatestUser;
-         permiOfStepsForEmerg(LatestUser) := False;
-         permiOfVitalsForEmerg(LatestUser) := False;
-         permiOfLocasForEmerg(LatestUser) := False;
       else
          NewUser := Null_UserID;
       end if;
@@ -48,8 +49,12 @@ is
            Wearer /= EmergencyID and Insurer /= EmergencyID and
            Insurer in Users'Range and Insurer /= Null_UserID and
            Users(Wearer) = True and Users(Insurer) = True  and
-           Wearer /= Insurer) then
+           Wearer /= Insurer and Insurers(Wearer) /= Insurer and
+           Insurer in Insurers'First..Insurers'Last) then
          Insurers(Wearer) := Insurer;
+         permiOfStepsForInsurer(Wearer) := True;
+         permiOfVitalsForInsurer(Wearer) := False;
+         permiOfLocasForInsurer(Wearer) := False;
       end if;
       
    end SetInsurer;
@@ -63,9 +68,7 @@ is
          permiOfStepsForInsurer(Wearer) := True;
          permiOfVitalsForInsurer(Wearer):= False;
          permiOfLocasForInsurer(Wearer):= False;
-       --permiOfStepsForInsurer := (Insurers(Wearer) => True);
-       --permiOfVitalsForInsurer := (Insurers(Wearer) => False);
-       --permiOfLocasForInsurer := (Insurers(Wearer) => False);
+      
          Insurers(Wearer) := Null_UserID;
       end if;
    end RemoveInsurer;
@@ -76,8 +79,12 @@ is
            Wearer /= EmergencyID and Friend /= EmergencyID 
            and Friend in Users'Range and Friend /= Null_UserID and
            Users(Wearer) = True and Users(Friend) = True  and
-           Wearer /= Friend) then
+           Wearer /= Friend and Friends(Wearer) /= Friend and
+           Friend in Friends'First..Friends'Last) then
          Friends(Wearer) := Friend;
+         permiOfStepsForFriend(Wearer):= False;
+         permiOfVitalsForFriend(Wearer):= False;
+         permiOfLocasForFriend(Wearer):= False;
       end if;
    end SetFriend;
      
@@ -90,9 +97,6 @@ is
          permiOfStepsForFriend(Wearer) := False;
          permiOfVitalsForFriend(Wearer) := False;
          permiOfLocasForFriend(Wearer) := False;
-         --permiOfStepsForFriend := (Friends(Wearer) => False);
-         --permiOfVitalsForFriend := (Friends(Wearer) => False);
-         --permiOfLocasForFriend := (Friends(Wearer) => False);
          Friends(Wearer) := Null_UserID;
       end if;
    end RemoveFriend;
@@ -157,23 +161,36 @@ is
      procedure UpdateFootstepsPermissions(Wearer : in UserID;
   					Other : in UserID;
   					Allow : in Boolean) is
-   begin
+     begin
       if(Wearer in Users'Range and Users(Wearer) = True and
            Wearer /= Null_UserID and Wearer /= EmergencyID) then 
-        if(Other = Friends(Wearer) or Other = EmergencyID) then
+        if(Other = Friends(Wearer) ) then
             permiOfStepsForFriend(Wearer) := Allow;
           elsif (Other = Insurers(Wearer)) then
-           permiOfStepsForFriend(Wearer) := True;
+            permiOfStepsForInsurer(Wearer) := True;
+         elsif (Other = EmergencyID) then
+            permiOfStepsForEmerg(Wearer) := Allow;
           end if;
-      end if;
+     end if;
          
      end UpdateFootstepsPermissions;
---     
+
+     --   
 --     procedure UpdateLocationPermissions(Wearer : in UserID;
---  				       Other : in UserID;
---  				       Allow : in Boolean) is 
---     begin
---     end UpdateLocationPermissions;
+--   				       Other : in UserID;
+--     				       Allow : in Boolean) is 
+--      begin
+--         if(Wearer in Users'Range and Users(Wearer) = True and
+--              Wearer /= Null_UserID and Wearer /= EmergencyID) then 
+--           if(Other = Friends(Wearer) ) then
+--               permiOfLocasForFriend(Wearer) := Allow;
+--             elsif (Other = Insurers(Wearer)) then
+--               permiOfLocasForInsurer(Wearer) := True;
+--            elsif (Other = EmergencyID) then
+--               permiOfLocasForEmerg(Wearer) := Allow;
+--             end if;
+--        end if;
+--      end UpdateLocationPermissions;
 
    procedure ContactEmergency(Wearer : in UserID; 
                               Location : in GPSLocation; 
