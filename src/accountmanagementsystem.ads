@@ -35,7 +35,8 @@ is
    -- kaiqi to point to the nex avaliable Index for record
    nextRecordIndex : Integer := 0;
    HistoryRecord :EmergencyArray;
-
+   Null_Record : EmergencyRecord;
+ 
    -- kaiqi Array for the permissions 
    type PermissionArray is array (UserID) of Boolean;
    
@@ -103,11 +104,8 @@ is
    procedure CreateUser(NewUser : out UserID) with
      
      Pre => (LatestUser < UserID'Last),
-     Post => (if(NewUser > EmergencyID and NewUser <= UserID'Last and Users'Old(NewUser) = False) then
-       (Users = Users'Old'Update(NewUser => True)) and
-     (permiOfLocasForEmerg = permiOfLocasForEmerg'Old'Update(NewUser => False)) and
-     (permiOfVitalsForEmerg = permiOfVitalsForEmerg'Old'Update(NewUser => False)) and
-                (permiOfStepsForEmerg = permiOfStepsForEmerg'Old'Update(NewUser => False))
+     Post => (if(LatestUser'Old>EmergencyID and LatestUser'Old<UserID'Last) then
+       (Users = Users'Old'Update(NewUser => True)) 
              else (NewUser = Null_UserID)
              );
    
@@ -146,7 +144,7 @@ is
 
    procedure RemoveFriend(Wearer : in UserID) with
      Pre => Friends(Wearer) /= UserID'First,
-     Post => (Friends = Friends'Old'Update(Wearer => UserID'First));
+     Post => (Friends = Friends'Old'Update(Wearer => Null_UserID));
 
    procedure UpdateVitals(Wearer : in UserID; NewVitals : in BPM) with
      Pre => Wearer in Users'Range and  (Users(Wearer) = True) and (Wearer /= Null_UserID),
