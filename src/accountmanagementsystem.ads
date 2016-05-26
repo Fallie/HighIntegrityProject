@@ -205,7 +205,8 @@ is
          
        Post => (if (Insurers(TargetUser) = Requester and permiOfVitalsForInsurer(TargetUser) = True) or
                    (Friends(TargetUser) = Requester and permiOfVitalsForFriend(TargetUser) = True) or
-                   (TargetUser = EmergencyID and permiOfVitalsForEmerg(TargetUser) = True)
+                    (TargetUser = EmergencyID and permiOfVitalsForEmerg(TargetUser) = True) or 
+                      (Requester = TargetUser)
                    
                   then
                       ReadVitals'Result = Vitals(TargetUser)
@@ -225,7 +226,8 @@ is
          
        Post => (if (Insurers(TargetUser) = Requester ) or
                    (Friends(TargetUser) = Requester and permiOfStepsForFriend(TargetUser) = True) or
-                   (TargetUser = EmergencyID and permiOfStepsForEmerg(TargetUser) = True)
+                   (TargetUser = EmergencyID and permiOfStepsForEmerg(TargetUser) = True) or 
+                      (Requester = TargetUser)
                    
                   then
                       ReadFootsteps'Result = MFootsteps(TargetUser)
@@ -243,7 +245,8 @@ is
                TargetUser in Users'Range and Users(TargetUser) = True and TargetUser /= Null_UserID and TargetUser /= EmergencyID ),
        Post => (if (Insurers(TargetUser) = Requester and permiOfLocasForInsurer(TargetUser) = True) or
                    (Friends(TargetUser) = Requester and permiOfLocasForFriend(TargetUser) = True) or
-                   (TargetUser = EmergencyID and permiOfLocasForEmerg(TargetUser) = True)
+                   (TargetUser = EmergencyID and permiOfLocasForEmerg(TargetUser) = True) or 
+                      (Requester = TargetUser)
                    
                   then
                       ReadLocation'Result = Locations(TargetUser)
