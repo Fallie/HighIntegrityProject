@@ -77,6 +77,7 @@ is
    -- Create and initialise the account management system
    procedure Init with 
      Post => (for all I in Users'Range => Users(I) = False) and
+
      (for all I in Friends'Range => Friends(I) = Null_UserID) and
      (for all I in Vitals'Range => Vitals(I) = Null_BPM) and
      (for all I in MFootsteps'Range => MFootsteps(I) = Null_Footsteps) and
@@ -102,7 +103,7 @@ is
    procedure CreateUser(NewUser : out UserID) with
      
      Pre => (LatestUser < UserID'Last),
-     Post => (if(LatestUser'Old>EmergencyID and LatestUser'Old<UserID'Last) then
+     Post => (if(NewUser > EmergencyID and NewUser <= UserID'Last and Users'Old(NewUser) = False) then
        (Users = Users'Old'Update(NewUser => True)) and
      (permiOfLocasForEmerg = permiOfLocasForEmerg'Old'Update(NewUser => False)) and
      (permiOfVitalsForEmerg = permiOfVitalsForEmerg'Old'Update(NewUser => False)) and
@@ -112,9 +113,11 @@ is
    
    procedure SetInsurer(Wearer : in UserID; Insurer : in UserID) with
 
-     Pre => Wearer in Users'Range and Insurer in Users'Range and 
-     (Users(Wearer) = True) and (Users(Insurer) = True),
-     Post => (if(Insurers'Old(Wearer) /= Insurer) then
+     Pre => Wearer in Users'Range and Insurer in Users'Range ,
+     Post => (if(Insurers'Old(Wearer) /= Insurer and 
+     (Users(Wearer) = True) and (Users(Insurer) = True) and 
+     (Wearer /= Null_UserID) and (Insurer /= Null_UserID) and 
+     (Wearer /= EmergencyID) and (Insurer /= EmergencyID)) then
      (Insurers = Insurers'Old'Update(Wearer => Insurer)) and 
      (permiOfStepsForInsurer = permiOfStepsForInsurer'Old'Update(Wearer => True)) and
      (permiOfVitalsForInsurer = permiOfVitalsForInsurer'Old'Update(Wearer => False)) and
