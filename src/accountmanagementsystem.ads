@@ -130,9 +130,11 @@ is
                 (permiOfVitalsForInsurer = permiOfVitalsForInsurer'Old'Update(Wearer => False)) and
                   (permiOfLocasForInsurer = permiOfLocasForInsurer'Old'Update(Wearer => False)));
               
-   function ReadInsurer(Wearer : in UserID) return UserID 
-   is (Insurers(Wearer));
-
+   function ReadInsurer(Wearer : in UserID) return UserID with
+   pre =>(Wearer in Users'Range and  Wearer /= Null_UserID and 
+            Wearer /= EmergencyID and Users(Wearer) = True ),
+     post => ReadInsurer'Result = Insurers(Wearer);
+   
    procedure RemoveInsurer(Wearer : in UserID) with
      Pre =>  Wearer in Users'Range and Users(Wearer) = True and (Wearer /= Null_UserID) and Wearer /= EmergencyID ,
      
@@ -154,8 +156,10 @@ is
                     (permiOfVitalsForFriend = permiOfVitalsForFriend'Old'Update(Wearer => False)) and
                   (permiOfLocasForFriend = permiOfLocasForFriend'Old'Update(Wearer => False))) ;
               
-   function ReadFriend(Wearer : in UserID) return UserID
-   is (Friends(Wearer));
+   function ReadFriend(Wearer : in UserID) return UserID with
+   pre =>(Wearer in Users'Range and  Wearer /= Null_UserID and 
+            Wearer /= EmergencyID and Users(Wearer) = True ),
+       post => ReadFriend'Result = Friends(Wearer);
 
    procedure RemoveFriend(Wearer : in UserID) with
      Pre =>  (Wearer in Users'Range and Users(Wearer) = True) and (Wearer /= Null_UserID) and Wearer /= EmergencyID ,
@@ -183,25 +187,6 @@ is
        Pre => Wearer in Users'Range and Users(Wearer) = True and (Wearer /= Null_UserID) and Wearer /= EmergencyID 
      and NewLocation /= Null_Location,
      Post => Locations = Locations'Old'Update(Wearer => NewLocation);
-     
-   -- An partial, incorrect specification.
-   -- Note that there is no need for a corresponding body for this function. 
-   -- These are best suited for functions that have simple control flow
-   --function ReadVitals(Requester : in UserID; TargetUser : in UserID) return BPM 
-   --is (if Friends(TargetUser) = Requester then
-   --       Vitals(TargetUser)
-   --    else BPM'First);
-   
-   
-   
-   -- An alternative specification using postconditions. These require package
-   -- bodies, and are better suited to functions with non-trivial control flow,
-   -- and are required for functions with preconditions
-   --function ReadVitals_Alt(Requester : in UserID; TargetUser : in UserID)
-   --                      return BPM 
-   --with Post => ReadVitals_Alt'Result = (if Friends(TargetUser) = Requester then
-   --     Vitals(TargetUser)
-   --                                      else BPM'First);
    
    
    function ReadVitals(Requester : in UserID; TargetUser : in UserID)
@@ -270,7 +255,7 @@ is
        Pre =>(Wearer in Users'Range and  Wearer /= Null_UserID and 
                 Wearer /= EmergencyID
               and Other in Users'Range and Other /= Null_UserID and
-                Users(Wearer) = True and Users(Other) = True  and
+                Users(Wearer) = True   and
                     Wearer /= Other),
          
          Post => (if Insurers'Old(Wearer) = Other then
@@ -291,7 +276,7 @@ is
        Pre =>(Wearer in Users'Range and  Wearer /= Null_UserID and 
                 Wearer /= EmergencyID
               and Other in Users'Range and Other /= Null_UserID and
-                Users(Wearer) = True and Users(Other) = True  and
+                Users(Wearer) = True  and
                     Wearer /= Other),
          
          Post => (if Insurers'Old(Wearer) = Other then
@@ -310,7 +295,7 @@ is
        Pre =>(Wearer in Users'Range and  Wearer /= Null_UserID and 
                 Wearer /= EmergencyID
               and Other in Users'Range and Other /= Null_UserID and
-                Users(Wearer) = True and Users(Other) = True  and
+                Users(Wearer) = True  and
                     Wearer /= Other),
          
          Post => (if Insurers'Old(Wearer) = Other then

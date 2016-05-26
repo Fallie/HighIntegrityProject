@@ -1,5 +1,6 @@
 with Measures; use Measures;
-
+with Emergency; use Emergency;
+with Ada.Text_IO;
 -- This package is a SPARK implementation of the assignment 3 of our group.
 -- The implementation is also strictly based on requirement described in
 -- assignment 1. In this implementation, insurers and wearers are created 
@@ -42,13 +43,13 @@ is
    -- Users are created here. The LatestUser will be auto-incremented.
    -- Then the Users(LatestUser) is set to true. If created successful, return
    -- The created userID, otherwise return the Null_UserID.
-   return Null_UserID means invalid.
    procedure CreateUser(NewUser : out UserID) is
    begin
       if(LatestUser>=EmergencyID and LatestUser<UserID'Last)then 
          LatestUser := LatestUser + 1;
          Users(LatestUser) := True;
          NewUser := LatestUser;
+         --Ada.Text_IO.Put_Line("create user"& UserID'Image(NewUser));
       else
          NewUser := Null_UserID;
       end if;
@@ -72,6 +73,18 @@ is
       end if;
    end SetInsurer;
    
+   -- This function is for returning the insurer of a wearer.
+   function ReadInsurer(Wearer : in UserID) return UserID
+   is
+   begin
+      if(Wearer in Users'Range and  Wearer /= Null_UserID and 
+            Wearer /= EmergencyID and Users(Wearer) = True) then
+         return Insurers(Wearer);
+      else
+         return Null_UserID;
+      end if;
+   end ReadInsurer;
+   
    -- This procedure removes a wearer´s insurer by setting it to Null_UserID.
    -- The procedure first checks the wearer's vadility. If pass the check,
    -- Set the permission of the insurer to default value.
@@ -86,6 +99,18 @@ is
       end if;
    end RemoveInsurer;
 
+   -- This function is for returning the friend of a wearer.
+   function ReadFriend(Wearer : in UserID) return UserID
+   is
+   begin
+      if(Wearer in Users'Range and  Wearer /= Null_UserID and 
+            Wearer /= EmergencyID and Users(Wearer) = True) then
+         return Friends(Wearer);
+      else
+         return Null_UserID;
+      end if;
+   end ReadFriend;
+   
    -- Friends are set here. The procedure checks the vadility of the wearer
    -- and the Friend. If pass the check, set the wearer's Friend to the
    -- input Friend and also re-initialize the permission of the Friend.
@@ -155,7 +180,8 @@ is
    is
    begin
    if (Requester in Users'Range and TargetUser in Users'Range and
-            Users(Requester) = True and Users(TargetUser) = True 
+         (Users(Requester) = True or Requester = EmergencyID) 
+       and Users(TargetUser) = True 
           and Requester /= Null_UserID and TargetUser /= EmergencyID) then
          if ((Friends(TargetUser) = Requester and 
                permiOfLocasForFriend(TargetUser) = True) or 
@@ -182,7 +208,8 @@ is
    is
    begin
       if (Requester in Users'Range and TargetUser in Users'Range and
-            Users(Requester) = True and Users(TargetUser) = True 
+            Users(TargetUser) = True and 
+            (Users(Requester) = True or Requester = EmergencyID)
           and Requester /= Null_UserID and TargetUser /= EmergencyID) then
          if ((Friends(TargetUser) = Requester and 
                permiOfVitalsForFriend(TargetUser) = True) or 
@@ -245,8 +272,7 @@ is
    begin
       if(Wearer in Users'Range and Users(Wearer) = True and
            Wearer /= Null_UserID and Wearer /= EmergencyID and
-             Other in Users'Range and Other /= Null_UserID and
-               Users(Other) = True  and Wearer /= Other) then 
+             Other in Users'Range  and Wearer /= Other) then 
          if(Other = Friends(Wearer) ) then
             permiOfVitalsForFriend(Wearer) := Allow;
          end if;
@@ -272,8 +298,8 @@ is
    begin
       if(Wearer in Users'Range and Users(Wearer) = True and
            Wearer /= Null_UserID and Wearer /= EmergencyID and
-             Other in Users'Range and Other /= Null_UserID and
-               Users(Other) = True  and Wearer /= Other) then 
+             Other in Users'Range and Other /= Null_UserID 
+            and Wearer /= Other) then 
          if(Other = Friends(Wearer)) then
             permiOfStepsForFriend(Wearer) := Allow;
          end if;
@@ -301,8 +327,8 @@ is
    begin
       if(Wearer in Users'Range and Users(Wearer) = True and
            Wearer /= Null_UserID and Wearer /= EmergencyID and
-             Other in Users'Range and Other /= Null_UserID and
-               Users(Other) = True  and Wearer /= Other) then 
+             Other in Users'Range and Other /= Null_UserID 
+             and Wearer /= Other) then 
          if(Other = Friends(Wearer) ) then
             permiOfLocasForFriend(Wearer) := Allow;
          end if;
@@ -331,6 +357,7 @@ is
              Vital /= Null_BPM and
              Location /= Null_Location and permiOfVitalsForEmerg(Wearer)= True
          and nextRecordIndex <= MAX_HISTORY and nextRecordIndex >= 0) then 
+         ContactEmergency(Wearer,Vital,Location);
          thisRecord.user := Wearer;
          thisRecord.GeoLocation := Location;
          thisRecord.HeartBeat := Vital;
